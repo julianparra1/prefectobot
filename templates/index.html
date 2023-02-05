@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+
+    <title>Prefrecto Robot!!!!</title>
+
+
+</head>
+<body>
+<div class="">
+    <div class="wrapper" style="text-align: center;">
+        <div class="video">
+            <h3 class="">Live Streaming</h3>
+            <img src="{{ url_for('video_feed') }}" height="427px" width="582px">
+        </div>
+        <div class="camera-controls">
+            <p>CAMARA</p>
+            <button id="cUp">arriba</button>
+            <button id="cDown">abajo</button>
+            <button id="cLeft">izquierda</button>
+            <button id="cRight">derecha</button>
+            <br>
+            <br>
+            <button id="imgCapture">CAPTURAR</button>
+        </div>
+        <div class="movement-controls">
+            <p>MOVIMIENTO</p>
+            <button id="mUp">Adelante</button>
+            <button id="mDown">Atras</button>
+            <button id="mLeft">Girar izquierda</button>
+            <button id="mRight">Girar Derecha</button>
+        </div>
+    	<div>	
+            <p>TASKS</p>
+            <button id="tRoam">ROAM</button>
+            <button id="tRec">REC</button>
+            <button id="tNone">NONE</button>
+
+	</div>
+    </div>
+</div>
+</body>
+
+<script type="module">
+    import { io } from "https://cdn.socket.io/4.4.1/socket.io.esm.min.js";
+    const socket = io();
+    
+    const cUp = document.querySelector("#cUp");
+    const cDown = document.querySelector("#cDown");
+
+    const cLeft = document.querySelector("#cLeft");
+    const cRight = document.querySelector("#cRight");
+
+    const mUp = document.querySelector("#mUp");
+    const mDown = document.querySelector("#mDown");
+
+    const mLeft = document.querySelector("#mLeft");
+    const mRight = document.querySelector("#mRight");
+
+
+    const tRoam = document.querySelector("#tRoam");
+    const tRec = document.querySelector("#tRec");
+
+    const imgCapture = document.querySelector("#imgCapture");
+
+    imgCapture.addEventListener('click', function () {
+        socket.emit('capture');
+    })
+    cUp.addEventListener('click', function () {
+        console.log("+y");
+        socket.emit("+y");
+    })
+    cDown.addEventListener('click', function () {
+        console.log("-y");
+        socket.emit("-y");
+    })
+    cLeft.addEventListener('click', function () {
+        console.log("+x");
+        socket.emit("+x");
+    })
+    cRight.addEventListener('click', function () {
+        console.log("-x");
+        socket.emit("-x");
+    })
+
+    mUp.addEventListener('click', function () {
+        console.log("forward");
+        socket.emit("forward");
+    })
+    mDown.addEventListener('click', function () {
+        console.log("forward");
+        socket.emit("backward");
+    })
+    mLeft.addEventListener('click', function () {
+        console.log("left");
+        socket.emit("left");
+    })
+    mRight.addEventListener('click', function () {
+        console.log("right");
+        socket.emit("right");
+    })
+    tRoam.addEventListener('click', function () {
+        console.log("roam");
+        socket.emit("roam");
+    })
+    tRec.addEventListener('click', function () {
+        console.log("recognize");
+        socket.emit("recognize");
+    })
+    tNone.addEventListener('click', function () {
+        console.log("stop_tasks");
+        socket.emit("stop_tasks");
+    })
+</script>
+
+</html>
