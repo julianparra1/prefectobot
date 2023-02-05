@@ -38,3 +38,6 @@ Para estas acciones ofrecemos la _interfaz de usuario_ la cual cuenta con:
 * 🎦 Feed de video en tiempo real acompañado por anotaciones realizadas de el robot
 * 🎮 Panel de control de movimiento de el robot
 * 📒 Panel de control con los eventos registrados
+
+## Esquematica
+![](https://i.imgur.com/BFObCTS.png)
