@@ -135,5 +135,5 @@ main1.py
 cam2.py
 cam.py
 trainer/
-
+data/face_encodings.dat 
 train.py

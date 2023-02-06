@@ -1,18 +1,18 @@
 from math import floor
-
-from multiprocessing import Process, Manager
-
 import time
-
 from picamera2 import Picamera2
-
+from multiprocessing import Process, Manager
 import face_recognition
 import numpy as np
 import cv2
+import socketio
 
-from threading import Thread
-from gpiozero import Servo, Motor
+from cogs import movement, data
 
+# TODO: FINISH TASK SWITCHING 
+# FIX QR CODE EVENT FIRING WAY TOO MANY TIMES
+# SERIALIZE EVENTS AND STYLIZE INTERWEB PAGE......... 
+# RE-READ ALL OF THEM COMMENTS TOO AND SPELL CHECK THEM TOO!!!....
 
 #https://docs.python.org/3/library/multiprocessing.html
 Global = Manager().Namespace()
@@ -33,52 +33,6 @@ def prev_id(current_id, worker_num):
         return worker_num
     else:
         return current_id - 1
-
-def start():
-
-    Global.buff_num = 1
-    Global.read_num = 1
-    Global.write_num = 1
-    Global.moving = False
-    Global.is_exit = False
-    Global.task = "none"
-
-    #cargar imagenes y crear sus encodings
-    julian_img = face_recognition.load_image_file("Julian.jpg")
-    julian_face_encoding = face_recognition.face_encodings(julian_img)[0]
-
-    nuevo_img = face_recognition.load_image_file("dataset/Nuevo.jpg")
-    nuevo_face_encoding = face_recognition.face_encodings(nuevo_img)[0]
-
-    angel_img = face_recognition.load_image_file("dataset/Angel.jpg")
-    angel_face_encoding = face_recognition.face_encodings(angel_img)[0]
-
-    panesito_img = face_recognition.load_image_file("panesito.jpg")
-    panesito_face_encoding = face_recognition.face_encodings(panesito_img)[0]
-
-    # array de encodings de caras...
-    Global.known_face_encodings = [
-    julian_face_encoding,
-    nuevo_face_encoding,
-    angel_face_encoding,
-    panesito_face_encoding,
-    ]
-    # y sus nombres
-    Global.known_face_names = [
-    "Julian",
-    "Victor",
-    "Angel",
-    "Panesito",
-    ]
-
-    p = []
-
-    p.append(Process(target=_capture, args=(read_frame_list, Global, workers,)))
-    p[0].start()
-
-    for worker_id in range(1, workers + 1):
-        p.append(Process(target=process, args=(worker_id, read_frame_list, write_frame_list, Global, workers)))
-        p[worker_id].start()
 
 def _capture(read_frame_list, Global, worker_num):
     picam2 = Picamera2()
@@ -103,6 +57,7 @@ def _capture(read_frame_list, Global, worker_num):
 
 
 def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
+    time.sleep(3)
     print(f"process {worker_id} started!")
     known_face_encodings = Global.known_face_encodings
     known_face_names = Global.known_face_names
@@ -122,7 +77,25 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
         
         # En modo roam buscamos el camino
         if Global.task == "roam":
-            resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
+            # Inicializamos leector de qr
+            qcd = cv2.QRCodeDetector()
+            # Si se detecta un QR retval devuelve True
+            retval, decoded_info, points, straight_qrcode = qcd.detectAndDecodeMulti(frame)
+            if retval == True:
+                # Dibujamos poligono donde se encuentran los puntos de el QR
+                cv2.polylines(frame, points.astype(int), True, (0, 255, 0), 3)
+                # Leemos la informacion de el codigo QR y lo juntamos con sus respectivos puntos
+                for data, points in zip(decoded_info, points):
+                    # TODO: DATA BASE LOOKUP
+                    print(data)
+                    if data == "HOLA MUNDO":
+                        data.write_event(1)
+                        print('sent')
+                        set_task("recognize")
+                    cv2.putText(frame, data, points[0].astype(int),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1, cv2.LINE_AA)
+            # TODO: OPTIMIZE IMAGE QUALITY FOR QR CODE DETECTION
+            #resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
 
             #convertimos el espacio de color a hsv (mas facil procesar el rango de colores)
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -135,22 +108,15 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             #mascara donde calculamos buscamos los colores dentro del rango especificado arriba
             mask = cv2.inRange(hsv, low_b, high_b)
 
-            #bounding boxes para decicion de girar
-            cv2.rectangle(frame, (0, 0), (250,436), (255,0,0), 1)
-            cv2.rectangle(frame, (250,0), (332,436), (255,0,0), 1)
-            cv2.rectangle(frame,(332,0), (581,436), (255,0,0), 1)
-
             #https://docs.opencv.org/4.x/d3/dc0/group__imgproc__shape.html
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
             if len(contours) > 0:
                 #busca el contorno mas grande
                 c = max(contours, key=cv2.contourArea)
 
-                
-                
-
                 #Si ya se esta en movimiento no calcular centroide
                 if Global.moving == False:
+
                     #momentos calcula el centroide de la figura
                     #https://en.wikipedia.org/wiki/Image_moment
                     #https://docs.opencv.org/3.1.0/dd/d49/tutorial_py_contour_features.html
@@ -175,29 +141,37 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                         cv2.circle(frame, (cx,cy), 1, (0,0,255), 3)
 
                         # Iniciamos proceso para movimiento segun la ubicacion del centroide
-                        m = Process(target=move, args=(a, Global))
-                        m.start()
-
+                        movement.move(a, Global)
+                            #bounding boxes para decicion de girar
+                cv2.rectangle(frame, (0, 0), (250,436), (255,0,0), 1)
+                cv2.rectangle(frame, (250,0), (332,436), (255,0,0), 1)
+                cv2.rectangle(frame,(332,0), (581,436), (255,0,0), 1)
                 cv2.drawContours(frame, c, -1, (0,255,), 6,)
+                
 
         if Global.task == "recognize":
             # Achicamos el frame para procesarlo mas rapido
             resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
 
-            # Encontrar las caras en el frame de video
+            # Encontrar las caras en el frame de video y sus encodings
             face_locations = face_recognition.face_locations(resized_frame)
             face_encodings = face_recognition.face_encodings(resized_frame, face_locations)
 
             names = []
             for face_encoding in face_encodings:
 
-                        # Comparamos cara encontrada en el frame con las caras que conocemos
+                        # Comparamos el encoding encontrado en el frame con los que ya conocemos
                         matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
                         name = "Desconocido"
 
-                        # Elegimos la cara mas cercana a una que conocemos
+                        # Comparamos las distancias entre caras
                         face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+                        
+                        # Buscamos la mejor coincidencia
                         best_match_index = np.argmin(face_distances)
+
+                        # Si el mas cercano de los matches es igual a True alta probabilidad de que sea la persona que ya conocemos
+                        # De lo contrario el nombre se mantiene como desconocido
                         if matches[best_match_index]:
                             name = known_face_names[best_match_index]
                         names.append(name)
@@ -218,7 +192,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                 # Cuadro con texto debajo
                 cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
                 font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(frame, name, (left + 6, bottom - 6), font, 0.5, (255, 255, 255), 1)
+                cv2.putText(frame, name, (left + 6, bottom - 6), font, 0.8, (255, 255, 255), 1)
             
         # Esperar a que sea nuestro turno para escribir un nuevo frame
         while Global.write_num != worker_id:
@@ -259,37 +233,46 @@ def capture():
             print("saved")
             return
 
-def roam():
-    Global.task = "roam"
+def set_task(task):
+    # Asignamos la tarea actual
+    Global.task = task
 
-def recognize():
-    Global.task = "recognize"
-
-def stop_tasks():
+def start():
+    # Variables globales y seguras para multiprocesamiento
+    Global.buff_num = 1
+    Global.read_num = 1
+    Global.write_num = 1
+    Global.moving = False
+    Global.is_exit = False
     Global.task = "none"
 
-def move(arg, Global):
-    Global.moving = True
+    #cargar imagenes y crear sus encodings
+    julian_img = face_recognition.load_image_file("dataset/1_Julian.jpg")
+    julian_face_encoding = face_recognition.face_encodings(julian_img)[0]
 
-    i = Motor("GPIO16", "GPIO12")
-    d = Motor("GPIO20", "GPIO21")
+    # Lee el diccionario que guardamos
+    # Y lo separa por keys (names) y values (encodings)
+    encodings, names = data.read_encodings()
 
-    if arg == 'f':
-        i.value = 1
-        d.value = 1
-        time.sleep(0.3)
-        
-    if arg == 'l':
-        i.value = 1
-        time.sleep(0.3)
+    print(names)
 
-    if arg == 'r':
-        d.value = 1
-        time.sleep(0.3)
-    
-    d.value = 0
-    i.value = 0
-    Global.moving = False
+    # Cargamos los encodings conocidos
+    Global.known_face_encodings = encodings
+    # Y sus nombres
+    Global.known_face_names = names
+
+    # Iniciamos array de procesos
+    p = []
+
+    # Iniciamos proceso de captura de frames de la camara
+    p.append(Process(target=_capture, args=(read_frame_list, Global, workers,)))
+    p[0].start()
+
+    # Abrimos un proceso nuevo segun los workers que asignamos
+    for worker_id in range(1, workers + 1):
+        p.append(Process(target=process, args=(worker_id, read_frame_list, write_frame_list, Global, workers)))
+        p[worker_id].start()
+
 
 
 

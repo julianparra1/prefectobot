@@ -9,7 +9,22 @@
 
     <title>Prefrecto Robot!!!!</title>
 
-
+    <style>
+        table {
+          font-family: arial, sans-serif;
+          border-collapse: collapse;
+        }
+        
+        td, th {
+          border: 1px solid #dddddd;
+          text-align: left;
+          padding: 8px;
+        }
+        
+        tr:nth-child(even) {
+          background-color: #dddddd;
+        }
+    </style>
 </head>
 <body>
 <div class="">
@@ -40,9 +55,27 @@
             <button id="tRoam">ROAM</button>
             <button id="tRec">REC</button>
             <button id="tNone">NONE</button>
-
-	</div>
+	    </div>
     </div>
+
+    <table>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Salon</th>
+            <th scope="col">Maestro</th>
+            <th scope="col">Tiempo</th>
+        </tr>
+        <tbody id="tbody">
+        {% for event in events %}
+            <tr>
+                <td>{{ event['eventoid'] }}</td>
+                <td>{{ event['Salon'] }}</td>
+                <td>{{ event['Nombre'] }}</td>
+                <td>{{ event['Tiempo'] }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 </div>
 </body>
 
@@ -73,49 +106,53 @@
     })
     cUp.addEventListener('click', function () {
         console.log("+y");
-        socket.emit("+y");
+        socket.emit("servo", "+y");
     })
     cDown.addEventListener('click', function () {
         console.log("-y");
-        socket.emit("-y");
+        socket.emit("servo", "-y");
     })
     cLeft.addEventListener('click', function () {
         console.log("+x");
-        socket.emit("+x");
+        socket.emit("servo", "+x");
     })
     cRight.addEventListener('click', function () {
         console.log("-x");
-        socket.emit("-x");
+        socket.emit("servo", "-x");
     })
 
     mUp.addEventListener('click', function () {
         console.log("forward");
-        socket.emit("forward");
+        socket.emit("motor", "f");
     })
     mDown.addEventListener('click', function () {
         console.log("forward");
-        socket.emit("backward");
+        socket.emit("motor", "b");
     })
     mLeft.addEventListener('click', function () {
         console.log("left");
-        socket.emit("left");
+        socket.emit("motor", "l");
     })
     mRight.addEventListener('click', function () {
         console.log("right");
-        socket.emit("right");
+        socket.emit("motor", "r");
     })
     tRoam.addEventListener('click', function () {
-        console.log("roam");
-        socket.emit("roam");
+        console.log("task: roam");
+        socket.emit("set_task", "roam");
     })
     tRec.addEventListener('click', function () {
-        console.log("recognize");
-        socket.emit("recognize");
+        console.log("task: recognize");
+        socket.emit("set_task", "recognize");
     })
     tNone.addEventListener('click', function () {
-        console.log("stop_tasks");
-        socket.emit("stop_tasks");
+        console.log("task: none");
+        socket.emit("set_task", "none");
     })
+
+    socket.on("event", () => {
+        console.log("AAA")
+    });
 </script>
 
 </html>
