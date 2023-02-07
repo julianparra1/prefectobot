@@ -1,3 +1,4 @@
+from datetime import datetime 
 import os
 import sqlite3
 import face_recognition
@@ -69,23 +70,53 @@ def setup_db():
         print("Conectado!")
         db.close()
 
-def write_event(id):
+def write_event(salon, maestro = None):
     # Enviar evento a el servidor para ser broadcasted a los clientes
+    sql = ""
+    nombre = "Ninguno"
+
+    db = get_db()
+    cur = db.cursor()
+
     sio = socketio.Client()
     sio.connect('http://localhost:5000')
+    
+    now = datetime.now()
+    tiempo = now.strftime("%Y-%m-%d %H:%M")
 
-    # TODO: SEND SERIALIZED DATA!!!
-    sio.emit('event', { 'data' : 1})
+    if maestro == None:
+        sql = ''' INSERT INTO eventos(tipo, salon, tiempo)
+                VALUES(?,?,?) '''
+        values = ('PARADA', salon, tiempo)
+    else:
+
+        sql = ''' INSERT INTO eventos(tipo, salon, tiempo, maestro)
+                VALUES(?,?,?,?) '''
+        values = ('RECONOCIMIENTO', salon, tiempo, maestro)
+
+    cur.execute(sql, values)
+    db.commit()
+    
+    data = cur.execute('''SELECT eventos.eventoid, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre 
+                          FROM eventos 
+                          LEFT JOIN maestros 
+                          ON eventos.maestro = maestros.maestroid 
+                          ORDER BY eventoid DESC LIMIT 1;''').fetchall()[0]
     
     #db = get_db()
     print(id)
+
+    # TODO: SEND SERIALIZED DATA!!!
+    sio.emit('event', {'id': data['eventoid'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': data['nombre'], 'tiempo' : data['tiempo']})
     # Cerrar conexion
+    cur.close()
+    db.close()
     sio.disconnect()
 
 def read_events():
     db = get_db()
     # Une la tabla Eventos donde la id de Maestro es igual y agrega su nombre
-    events = db.execute('SELECT Eventos.eventoid, Eventos.Salon, Eventos.Tiempo, Maestros.Nombre FROM Eventos INNER JOIN Maestros ON Eventos.Maestro = Maestros.maestroid;').fetchall()
+    events = db.execute('SELECT eventos.eventoid, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre FROM eventos LEFT JOIN maestros ON eventos.maestro = maestros.maestroid;').fetchall()
     db.close()
 
     # Esto se regresa a la template de index

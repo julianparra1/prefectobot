@@ -43,7 +43,6 @@ def handle_message(data):
 
 @socketio.on('servo') # Controlar Servo
 def handle_message(data):
-    socketio.emit('event', {'data' : 1})
     movement.servo(arg=data)
 
 @socketio.on('motor') # Controlar Ruedas

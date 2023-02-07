@@ -81,8 +81,11 @@ def servo(arg = None, x = None, y = None):
         elif arg == "-x":
             servoX.value -= 0.1
         elif arg == "roam":
-            servoY.value = -0.5
+            servoY.value = -0.8
             servoX.value = 0
+        elif arg == "recognize":
+            servoY.value = 0.5
+            servoX.value = 1
         else:
             return
     except:

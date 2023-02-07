@@ -70,30 +70,35 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
         frame = read_frame_list[worker_id]
 
         # Escribir el trabajador siguiente para que lea
-        Global.read_num = next_id(Global.read_num, worker_num)
+        Global.read_num = next_id(Global.read_num, worker_num)   
 
         if Global.task == "none":
             pass
-        
+
         # En modo roam buscamos el camino
         if Global.task == "roam":
-            # Inicializamos leector de qr
-            qcd = cv2.QRCodeDetector()
-            # Si se detecta un QR retval devuelve True
-            retval, decoded_info, points, straight_qrcode = qcd.detectAndDecodeMulti(frame)
-            if retval == True:
-                # Dibujamos poligono donde se encuentran los puntos de el QR
-                cv2.polylines(frame, points.astype(int), True, (0, 255, 0), 3)
-                # Leemos la informacion de el codigo QR y lo juntamos con sus respectivos puntos
-                for data, points in zip(decoded_info, points):
-                    # TODO: DATA BASE LOOKUP
-                    print(data)
-                    if data == "HOLA MUNDO":
-                        data.write_event(1)
-                        print('sent')
-                        set_task("recognize")
-                    cv2.putText(frame, data, points[0].astype(int),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1, cv2.LINE_AA)
+            if Global.sending == False:
+                # Solo uno a la vez
+                Global.sending = True
+                # Inicializamos leector de qr
+                qcd = cv2.QRCodeDetector()
+                # Si se detecta un QR retval devuelve True
+                retval, decoded_info, ps, straight_qrcode = qcd.detectAndDecodeMulti(frame)
+                if retval == True:
+                    # Dibujamos poligono donde se encuentran los puntos de el QR
+                    cv2.polylines(frame, ps.astype(int), True, (0, 255, 0), 3)
+                    # Leemos la informacion de el codigo QR y lo juntamos con sus respectivos puntos
+                    for d, ps in zip(decoded_info, ps):
+                        # TODO: DATA BASE LOOKUP
+                        print(d)
+                        if d == "HOLA MUNDO":
+                            Global.salon = d
+                            data.write_event(d)
+                            set_task("recognize")
+                            print('sent')
+                        cv2.putText(frame, d, ps[0].astype(int), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
+                # Si reconoce algo no se llega hasta aqui
+                Global.sending = False
             # TODO: OPTIMIZE IMAGE QUALITY FOR QR CODE DETECTION
             #resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
 
@@ -150,6 +155,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                 
 
         if Global.task == "recognize":
+            
             # Achicamos el frame para procesarlo mas rapido
             resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
 
@@ -173,7 +179,15 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                         # Si el mas cercano de los matches es igual a True alta probabilidad de que sea la persona que ya conocemos
                         # De lo contrario el nombre se mantiene como desconocido
                         if matches[best_match_index]:
-                            name = known_face_names[best_match_index]
+                            # Checar si no estamos enviando ya informacion
+                            if Global.sending != True:
+                                # Si no se esta nosotros lo enviaremos
+                                Global.sending = True
+                                name = known_face_names[best_match_index]
+                                c_name = name.split('_')[0]
+                                data.write_event(Global.salon, c_name)
+                                Global.sending = False
+                            set_task("roam")
                         names.append(name)
 
             # Por cada cara en el frame:
@@ -234,7 +248,7 @@ def capture():
             return
 
 def set_task(task):
-    # Asignamos la tarea actual
+    movement.servo(task)
     Global.task = task
 
 def start():
@@ -245,6 +259,8 @@ def start():
     Global.moving = False
     Global.is_exit = False
     Global.task = "none"
+    Global.salon = ""
+    Global.sending = False
 
     #cargar imagenes y crear sus encodings
     julian_img = face_recognition.load_image_file("dataset/1_Julian.jpg")
