@@ -274,3 +274,5 @@ dist
 package-lock.json
 package.json
 tailwind.config.js
+
+data/prefectbot.sqlite
