@@ -54,8 +54,10 @@ def handle_message(data):
     processing.set_task(task=data)
 
 @socketio.on('capture')
-def handle_message():
-    processing.capture()
+def handle_message(data):
+    print(data)
+    print("CAPTURE")
+    processing.capture(data)
 
 if __name__ == '__main__':
     processing.start()

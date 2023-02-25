@@ -9,10 +9,6 @@ import socketio
 
 from cogs import movement, data
 
-# TODO: FINISH TASK SWITCHING 
-# FIX QR CODE EVENT FIRING WAY TOO MANY TIMES
-# SERIALIZE EVENTS AND STYLIZE INTERWEB PAGE......... 
-# RE-READ ALL OF THEM COMMENTS TOO AND SPELL CHECK THEM TOO!!!....
 
 #https://docs.python.org/3/library/multiprocessing.html
 Global = Manager().Namespace()
@@ -77,9 +73,9 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
         # En modo roam buscamos el camino
         if Global.task == "roam":
-            if Global.sending == False:
+            if Global.sent == False:
                 # Solo uno a la vez
-                Global.sending = True
+                Global.sent = True
                 # Inicializamos leector de qr
                 qcd = cv2.QRCodeDetector()
                 # Si se detecta un QR retval devuelve True
@@ -89,7 +85,6 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                     cv2.polylines(frame, ps.astype(int), True, (0, 255, 0), 3)
                     # Leemos la informacion de el codigo QR y lo juntamos con sus respectivos puntos
                     for d, ps in zip(decoded_info, ps):
-                        # TODO: DATA BASE LOOKUP
                         print(d)
                         if d == "HOLA MUNDO":
                             Global.salon = d
@@ -98,8 +93,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                             print('sent')
                         cv2.putText(frame, d, ps[0].astype(int), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
                 # Si reconoce algo no se llega hasta aqui
-                Global.sending = False
-            # TODO: OPTIMIZE IMAGE QUALITY FOR QR CODE DETECTION
+                Global.sent = False
             #resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
 
             #convertimos el espacio de color a hsv (mas facil procesar el rango de colores)
@@ -154,7 +148,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                 cv2.drawContours(frame, c, -1, (0,255,), 6,)
                 
 
-        if Global.task == "recognize":
+        if Global.task == "recognize" and Global.sent == False:
             
             # Achicamos el frame para procesarlo mas rapido
             resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
@@ -175,19 +169,19 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                         
                         # Buscamos la mejor coincidencia
                         best_match_index = np.argmin(face_distances)
+                        face_distance = face_distances[best_match_index]
+
+                        #print(f"for {face_distances} : {face_distances < 0.45}")
+                        #print(f"for idx {best_match_index} : {face_distance < 0.45}")
 
                         # Si el mas cercano de los matches es igual a True alta probabilidad de que sea la persona que ya conocemos
                         # De lo contrario el nombre se mantiene como desconocido
-                        if matches[best_match_index]:
-                            # Checar si no estamos enviando ya informacion
-                            if Global.sending != True:
-                                # Si no se esta nosotros lo enviaremos
-                                Global.sending = True
+                        if face_distance < 0.45:
+                            if matches[best_match_index]:
                                 name = known_face_names[best_match_index]
-                                c_name = name.split('_')[0]
-                                data.write_event(Global.salon, c_name)
-                                Global.sending = False
-                            set_task("roam")
+                                print(name)
+                                data.write_event(Global.salon, name)
+                                set_task("roam")
                         names.append(name)
 
             # Por cada cara en el frame:
@@ -231,25 +225,24 @@ def get_frames():
             # Escribir el ultimo frame terminado y etiquetar
             yield (b'--frame\r\n'
                     b'Content-Type: image/jpeg\r\n\r\n' + bytearray(write_frame_list[prev_id(Global.write_num, workers)]) + b'\r\n')
-def capture():
+def capture(name):
     # Leer el frame actual
     if Global.read_num != prev_id(Global.buff_num, workers):
         frame = read_frame_list[Global.read_num]
         # Convertir a Escala de grises
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # Buscar caras
         face_locations = face_recognition.face_locations(frame)
         print("saving...")
         for (top, right, bottom, left) in face_locations:
-            
-            print(top)
-            cv2.imwrite("dataset/Nuevo.jpg", frame)
+            #[top:bottom, left:right]
+            data.write_to_dataset(frame, name)
             print("saved")
             return
 
 def set_task(task):
     movement.servo(task)
     Global.task = task
+    Global.sent = False
 
 def start():
     # Variables globales y seguras para multiprocesamiento
@@ -260,12 +253,9 @@ def start():
     Global.is_exit = False
     Global.task = "none"
     Global.salon = ""
-    Global.sending = False
+    Global.sent = False
 
     #cargar imagenes y crear sus encodings
-    julian_img = face_recognition.load_image_file("dataset/1_Julian.jpg")
-    julian_face_encoding = face_recognition.face_encodings(julian_img)[0]
-
     # Lee el diccionario que guardamos
     # Y lo separa por keys (names) y values (encodings)
     encodings, names = data.read_encodings()

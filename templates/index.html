@@ -36,15 +36,12 @@
                     <label class="text-sm font-medium text-slate-700">Camara</label>
                 </div>
                 <div class="mt-1">
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="cUp">🡅</button>
+                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cUp">🡅</button>
                 </div>
                 <div class="mt-1">
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="cLeft">🡄</button>
-                    <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="cDown">🡇</button>
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="cRight">🡇</button>
-                </div>
-                <div class="">
-                    <button id="imgCapture">CAPTURAR</button>
+                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cLeft">🡄</button>
+                    <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cDown">🡇</button>
+                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cRight">🡇</button>
                 </div>
             </div>
             <div class="mt-1 flex flex-col items-center" style="font-size: 0px;">
@@ -57,15 +54,12 @@
                 </div>
                 
                 <div class="mt-1">
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="mUp">🡅</button>
+                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mUp">🡅</button>
                 </div>
                 <div class="mt-1">
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="mLeft">🡄</button>
-                    <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="mDown">🡇</button>
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="mRight">🡇</button>
-                </div>
-                <div class="">
-                    <button id="imgCapture">CAPTURAR</button>
+                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mLeft">🡄</button>
+                    <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mDown">🡇</button>
+                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mRight">🡇</button>
                 </div>
             </div>
         </div>
@@ -75,21 +69,29 @@
                 <label class="block text-sm font-medium text-slate-700">Tareas</label>
             </div>
             <div>
-                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="tRoam">ROAM</button>
-                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="tRec">REC</button>
-                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2.5 text-sm leading-5 rounded-md font-semibold text-purple-100" id="tNone">NONE</button>
+                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tRoam">ROAM</button>
+                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tRec">REC</button>
+                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tNone">NONE</button>
             </div>
+	    <div class="mt-4">
+                <label class="block text-sm font-medium text-slate-700 shadow-sm">Captura</label>
+            </div>
+	    </div>
+	    <div>
+            <input id="name" type="text" class="text-sm px-2 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 rounded-md focus:outline-none focus:border-purple-400 focus:ring-purple-400">
+            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="imgCapture">Captura</button>
+	    </div>
         </div>
 
         <div class="mt-2 flex flex-col items-center">
             <label class="block text-sm font-medium text-slate-700">Eventos</label>
             <table class="mt-1 border-collapse rounded-md border border-slate-400 bg-white text-xs md:text-sm shadow-sm">
                 <tr>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center" scope="col">#</th>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center" scope="col">Tipo</th>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center" scope="col">Salon</th>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center" scope="col">Maestro</th>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center" scope="col">Tiempo</th>
+                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">#</th>
+                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Tipo</th>
+                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Salon</th>
+                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Maestro</th>
+                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Tiempo</th>
                 </tr>
                 <tbody id="tbody">
                 {% for event in events %}
@@ -135,6 +137,7 @@
     const imgCapture = document.querySelector("#imgCapture");
     
     const tbody = document.querySelector("#tbody");
+    const tInput = document.querySelector("#name");
 
     function addRow(id, tipo, salon, maestro, tiempo) {
         if (maestro == undefined) {
@@ -149,6 +152,7 @@
     let cMaestro = newRow.insertCell(3);
     let cTiempo = newRow.insertCell(4);
 
+
     let txtId = document.createTextNode(id);
     let txtTipo = document.createTextNode(tipo);
     let txtSalon = document.createTextNode(salon);
@@ -160,11 +164,18 @@
     cSalon.appendChild(txtSalon);
     cMaestro.appendChild(txtMaestro);
     cTiempo.appendChild(txtTiempo);
+    
+    const style = ["border", "border-slate-300", "md:p-3.5", "text-slate-500"]
 
+    cId.classList.add(...style);
+    cTipo.classList.add(...style);
+    cSalon.classList.add(...style);
+    cMaestro.classList.add(...style);
+    cTiempo.classList.add(...style);
     }
 
     imgCapture.addEventListener('click', function () {
-        socket.emit('capture');
+	socket.emit('capture', tInput.value);
     })
     cUp.addEventListener('click', function () {
         console.log("+y");

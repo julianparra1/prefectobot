@@ -25,7 +25,7 @@ def move(arg = "", Global = None):
         m = Process(target=_move, args=(arg, Global, 1))
         m.start()
     
-def _move(arg, Global, t = 0.3):
+def _move(arg, Global, t = 0.6):
     # Si no venimos de un proceso ignoramos Globla
     if Global != None:
         Global.moving = True
