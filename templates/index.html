@@ -1,120 +1,98 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <!-- Bootstrap CSS -->
-
-    <title>Prefrecto Robot!!!!</title>
-
-    <link href="static/output.css" rel="stylesheet">
-
-</head>
-<body>
-
-<header class="bg-white shadow">
-    <div class="mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
-        <h1 class="text-xl font-bold tracking-tight text-gray-900">
-            prefectbot 🤖
-        </h1>
-    </div>
-</header>
-
-<div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-    <div class="flex flex-col items-center rounded-md">    
+{% extends "layout.html" %}
+{% block title %}Main{% endblock %}
+{% block content %}
+<div class="">
+    <img src="{{ url_for('video_feed') }}" height="427px" width="582px">
+</div>
+<div class="md:flex md:gap-x-6">
+    <div class="mt-1 flex flex-col items-center" style="font-size: 0px;">
         <div class="">
-            <img src="{{ url_for('video_feed') }}" height="427px" width="582px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-camera" viewBox="0 0 16 12"> <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/> <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/> </svg> 
         </div>
-        <div class="md:flex md:gap-x-6">
-            <div class="mt-1 flex flex-col items-center" style="font-size: 0px;">
-                <div class="">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-camera" viewBox="0 0 16 12"> <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/> <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/> </svg> 
-                </div>
-                <div class="">
-                    <label class="text-sm font-medium text-slate-700">Camara</label>
-                </div>
-                <div class="mt-1">
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cUp">🡅</button>
-                </div>
-                <div class="mt-1">
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cLeft">🡄</button>
-                    <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cDown">🡇</button>
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cRight">🡇</button>
-                </div>
-            </div>
-            <div class="mt-1 flex flex-col items-center" style="font-size: 0px;">
-                <div class="">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-minecart" viewBox="0 0 16 16"> <path d="M4 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8-1a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM.115 3.18A.5.5 0 0 1 .5 3h15a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 14 12H2a.5.5 0 0 1-.491-.408l-1.5-8a.5.5 0 0 1 .106-.411zm.987.82 1.313 7h11.17l1.313-7H1.102z"/> </svg> 
-                </div>
+        <div class="">
+            <label class="text-sm font-medium text-slate-700">Camara</label>
+        </div>
+        <div class="mt-1">
+            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cUp">🡅</button>
+        </div>
+        <div class="mt-1">
+            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cLeft">🡄</button>
+            <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cDown">🡇</button>
+            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cRight">🡇</button>
+        </div>
+    </div>
+    <div class="mt-1 flex flex-col items-center" style="font-size: 0px;">
+        <div class="">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-minecart" viewBox="0 0 16 16"> <path d="M4 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8-1a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM.115 3.18A.5.5 0 0 1 .5 3h15a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 14 12H2a.5.5 0 0 1-.491-.408l-1.5-8a.5.5 0 0 1 .106-.411zm.987.82 1.313 7h11.17l1.313-7H1.102z"/> </svg> 
+        </div>
 
-                <div class="">
-                    <label class="text-sm font-medium text-slate-700">Movimiento</label>
-                </div>
-                
-                <div class="mt-1">
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mUp">🡅</button>
-                </div>
-                <div class="mt-1">
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mLeft">🡄</button>
-                    <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mDown">🡇</button>
-                    <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mRight">🡇</button>
-                </div>
-            </div>
+        <div class="">
+            <label class="text-sm font-medium text-slate-700">Movimiento</label>
         </div>
         
-        <div class="mt-4 flex flex-col items-center">
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Tareas</label>
-            </div>
-            <div>
-                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tRoam">ROAM</button>
-                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tRec">REC</button>
-                <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tNone">NONE</button>
-            </div>
-	    <div class="mt-4">
-                <label class="block text-sm font-medium text-slate-700 shadow-sm">Captura</label>
-            </div>
-	    </div>
-	    <div>
-            <input id="name" type="text" class="text-sm px-2 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 rounded-md focus:outline-none focus:border-purple-400 focus:ring-purple-400">
-            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="imgCapture">Captura</button>
-	    </div>
+        <div class="mt-1">
+            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mUp">🡅</button>
         </div>
-
-        <div class="mt-2 flex flex-col items-center">
-            <label class="block text-sm font-medium text-slate-700">Eventos</label>
-            <table class="mt-1 border-collapse rounded-md border border-slate-400 bg-white text-xs md:text-sm shadow-sm">
-                <tr>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">#</th>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Tipo</th>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Salon</th>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Maestro</th>
-                    <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Tiempo</th>
-                </tr>
-                <tbody id="tbody">
-                {% for event in events %}
-                    <tr>
-                        <td class="border border-slate-300 md:p-3.5 text-slate-500" >{{ event['eventoid'] }}</td>
-                        <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Tipo'] }}</td>
-                        <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Salon'] }}</td>
-                        {% if event['Nombre'] is not none %}   
-                        <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Nombre'] }}</td>
-                        {% else %}
-                        <td class="border border-slate-300 md:p-3.5 text-slate-500">Ninguno</td>
-                        {% endif %}
-                        <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Tiempo'] }}</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+        <div class="mt-1">
+            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mLeft">🡄</button>
+            <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mDown">🡇</button>
+            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mRight">🡇</button>
         </div>
     </div>
-    
 </div>
-</body>
 
+<div class="mt-4 flex flex-col items-center">
+    <div>
+        <label class="block text-sm font-medium text-slate-700">Tareas</label>
+    </div>
+    <div>
+        <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tRoam">ROAM</button>
+        <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tRec">REC</button>
+        <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="tNone">NONE</button>
+    </div>
+    <div class="mt-4">
+        <label class="block text-sm font-medium text-slate-700 shadow-sm">Captura</label>
+    </div>
+</div>
+
+    <div>
+        <input id="name" type="text" class="text-sm px-2 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 rounded-md focus:outline-none focus:border-purple-400 focus:ring-purple-400">
+        <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="imgCapture">Captura</button>
+    </div>
+
+    <div class="mt-2 flex flex-col items-center">
+        <label class="block text-sm font-medium text-slate-700">Eventos</label>
+        <table class="mt-1 border-collapse rounded-md border border-slate-400 bg-white text-xs md:text-sm shadow-sm">
+            <tr>
+                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">#</th>
+                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Tipo</th>
+                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Salon</th>
+                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Maestro</th>
+                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Tiempo</th>
+            </tr>
+            <tbody id="tbody">
+            {% for event in events %}
+                <tr>
+                    <td class="border border-slate-300 md:p-3.5 text-slate-500" >{{ event['id'] }}</td>
+                    <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Tipo'] }}</td>
+                    <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Salon'] }}</td>
+                    {% if event['Nombre'] is not none %}   
+                    <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Nombre'] }}</td>
+                    {% else %}
+                    <td class="border border-slate-300 md:p-3.5 text-slate-500">Ninguno</td>
+                    {% endif %}
+                    <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Tiempo'] }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block script %}
 <script type="module">
     import { io } from "https://cdn.socket.io/4.4.1/socket.io.esm.min.js";
     const socket = io();
@@ -228,4 +206,4 @@
     });
 </script>
 
-</html>
+{% endblock %}

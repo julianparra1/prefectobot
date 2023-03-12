@@ -27,7 +27,7 @@ def move(arg="", Global=None):
         m.start()
 
 
-def _move(arg, Global, t=0.6):
+def _move(arg, Global, t=0.1):
     # Si no venimos de un proceso ignoramos Globla
     if Global is not None:
         Global.moving = True
@@ -87,7 +87,7 @@ def servo(arg=None, x=None, y=None):
             servoX.value = 0
         elif arg == "recognize":
             servoY.value = 0.5
-            servoX.value = 1
+            servoX.value = -1
         else:
             return
     except (ValueError, Exception):

@@ -1,0 +1,36 @@
+{% set title_s %}{% block title %}default{% endblock %}{% endset %}
+<!doctype html>
+<html>
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+
+    
+    <link href="static/output.css" rel="stylesheet">
+
+    {% block head %}
+    <title> {{ title_s }} - PrefectoBot</title>
+    {% endblock %}
+</head>
+<body>
+    <header class="bg-white shadow">
+        <div class="flex mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8 ">
+            <a href="{{ url_for('index') }}" class="text-xl font-bold tracking-tight text-gray-900">
+                PrefectoBot 🤖 - {{ title_s }}
+            </a>
+            <a href="{{ url_for('config') }}" class="ml-auto text-xl font-bold tracking-tight text-gray-900">⚙️</a>
+        </div>
+    </header>
+    
+    <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        <div class="flex flex-col items-center rounded-md">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+  </body>
+</html>
+
+{% block script %}{% endblock %}

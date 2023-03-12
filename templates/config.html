@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}Config ⚙️{% endblock %}
+{% block content %}
+
+<div class="mt-2 flex flex-col items-center">
+    
+</div>
+
+<div class="mt-2 flex flex-col items-center">
+    <label class="block text-sm font-medium text-slate-700">Eventos</label>
+    <table class="mt-1 border-collapse rounded-md border border-slate-400 bg-white text-xs md:text-sm shadow-sm">
+        <tr>
+            <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">ID</th>
+            <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Nombre</th>
+        </tr>
+        <tbody id="tbody">
+        {% for maestro in maestros %}
+            <tr>
+                <td class="border border-slate-300 md:p-3.5 text-slate-500" >{{ maestro['id'] }}</td>
+                <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ maestro['nombre'] }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -34,6 +34,7 @@ def write_encodings(directory):
     cur = db.cursor()
     cur.execute("DROP TABLE IF EXISTS maestros")
     cur.execute("DROP TABLE IF EXISTS eventos")
+    cur.execute("DROP TABLE IF EXISTS salones")
 
     _f = open("data/db_setup.sql", "r")
     sql = _f.read()
@@ -55,7 +56,7 @@ def write_encodings(directory):
 
         values = (m_id, name)
 
-        cur.execute("INSERT INTO maestros(maestroid, nombre) VALUES (?,?)", values)
+        cur.execute("INSERT INTO maestros(id, nombre) VALUES (?,?)", values)
         db.commit()
 
         # Cargar la imagen usando su ubicacion    
@@ -90,60 +91,107 @@ def setup_db():
         db = get_db()
         print("Conectado!")
         db.close()
-
-
-def write_event(salon, maestro=None):
+        
+def salon_check(salon):
     db = get_db()
     cur = db.cursor()
-    sio = socketio.Client()
-    sio.connect('http://localhost:5000')
-
-    last_time = cur.execute('''SELECT unix 
-                        FROM eventos 
-                        ORDER BY eventoid DESC LIMIT 1;''').fetchone()
-    print(last_time)
+    data = cur.execute('''SELECT id, nombre, orientacion
+                            FROM salones 
+                            WHERE id=?;''', salon).fetchone()  
+    if data is not None:
+        return True, data['orientacion']
+    else:
+        return False
+    
+def check(cur):
+    last_time = cur.execute('''SELECT unix FROM eventos ORDER BY id DESC LIMIT 1;''').fetchone()    
+    
     if last_time is not None:
         print(f"last_time: {last_time['unix']}")
         timedelta = (int(time.time()) - last_time['unix'])
     else:
         timedelta = 3
+        
+    return (timedelta >= 3)
 
-    if timedelta >= 3:
+def write_stop(salon):
+    db = get_db()
+    cur = db.cursor()
+    
+    flag = check(cur)
+    
+    sio = socketio.Client()
+    sio.connect('http://localhost:5000')
+
+    if flag:
         # Enviar evento a el servidor para ser broadcasted a los clientes
-        print(f"allowed: {timedelta}")
+
+        unix = int(time.time())
+        
+        now = datetime.now()
+        tiempo = now.strftime("%Y-%m-%d %H:%M")
+
+        sql = ''' INSERT INTO eventos(tipo, salon, tiempo, unix)
+                    VALUES(?,?,?,?) '''
+        values = ('PARADA', salon, tiempo, unix)
+
+        cur.execute(sql, values)
+        db.commit()
+
+        data = cur.execute('''SELECT id, tipo, salon, tiempo  
+                            FROM eventos
+                            ORDER BY id DESC LIMIT 1;''').fetchone()
+
+        sio.emit('event',
+                 {'id': data['id'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': None,
+                  'tiempo': data['tiempo']})
+
+def get_maestro(id):
+    db = get_db()
+    cur = db.cursor()
+    maestro = cur.execute('''SELECT name 
+                        FROM nombre 
+                        ORDER BY id DESC LIMIT 1;''').fetchone()
+    return maestro
+
+def write_rec(salon, maestro=None): 
+    sio = socketio.Client()
+    sio.connect('http://localhost:5000')
+
+    db = get_db()
+    cur = db.cursor()
+    
+    flag = check(cur)
+
+    if flag:
+        # Enviar evento a el servidor para ser broadcasted a los clientes
 
         unix = int(time.time())
 
         now = datetime.now()
         tiempo = now.strftime("%Y-%m-%d %H:%M")
 
-        if maestro is None:
-            sql = ''' INSERT INTO eventos(tipo, salon, tiempo, unix)
-                    VALUES(?,?,?,?) '''
-            values = ('PARADA', salon, tiempo, unix)
-        else:
-
-            sql = ''' INSERT INTO eventos(tipo, salon, tiempo, unix, maestro)
-                    VALUES(?,?,?,?,?) '''
-            values = ('RECONOCIMIENTO', salon, tiempo, unix, maestro)
+        sql = ''' INSERT INTO eventos(tipo, salon, tiempo, unix, maestro)
+                VALUES(?,?,?,?,?) '''
+        values = ('RECONOCIMIENTO', salon, tiempo, unix, maestro)
 
         cur.execute(sql, values)
         db.commit()
 
-        data = cur.execute('''SELECT eventos.eventoid, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre 
+        data = cur.execute('''SELECT eventos.id, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre 
                             FROM eventos 
                             LEFT JOIN maestros 
-                            ON eventos.maestro = maestros.maestroid 
-                            ORDER BY eventoid DESC LIMIT 1;''').fetchall()[0]
+                            ON eventos.maestro = maestros.id 
+                            ORDER BY eventos.id DESC LIMIT 1;''').fetchall()[0]
 
-        # db = get_db()
-
-        # TODO: SEND SERIALIZED DATA!!!
         sio.emit('event',
-                 {'id': data['eventoid'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': data['nombre'],
+                 {'id': data['id'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': data['nombre'],
                   'tiempo': data['tiempo']})
-        # Cerrar conexion
+        
+        return True, data['nombre']
+
     else:
+        return False, 'Desconocido'
         print(f"rejected: {timedelta}")
 
 
@@ -151,22 +199,32 @@ def write_to_dataset(frame, name):
     db = get_db()
     cur = db.cursor()
 
-    data = cur.execute('''SELECT maestroid 
+    data = cur.execute('''SELECT id 
                           FROM maestros 
-                          ORDER BY maestroid DESC LIMIT 1;''').fetchone()
+                          ORDER BY id DESC LIMIT 1;''').fetchone()
     print(data)
     if data is not None:
-        cv2.imwrite(f"dataset/{int(data['maestroid']) + 1}_{name}.jpg", frame)
+        cv2.imwrite(f"dataset/{int(data['id']) + 1}_{name}.jpg", frame)
     else:
         cv2.imwrite(f"dataset/1_{name}.jpg", frame)
+        
+
+def read_maestros():
+    db = get_db()
+    # Une la tabla Eventos donde la id de Maestro es igual y agrega su nombre
+    maestros = db.execute('SELECT * FROM maestros').fetchall()
+    db.close()
+
+    # Esto se regresa a la template de index
+    return maestros
 
 
 def read_events():
     db = get_db()
     # Une la tabla Eventos donde la id de Maestro es igual y agrega su nombre
     events = db.execute(
-        'SELECT eventos.eventoid, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre FROM eventos LEFT JOIN '
-        'maestros ON eventos.maestro = maestros.maestroid;').fetchall()
+        'SELECT eventos.id, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre FROM eventos LEFT JOIN '
+        'maestros ON eventos.maestro = maestros.id;').fetchall()
     db.close()
 
     # Esto se regresa a la template de index

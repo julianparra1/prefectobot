@@ -6,7 +6,7 @@ import face_recognition
 import numpy as np
 import cv2
 
-from cogs import movement, data
+from cogs import movement, data, voice
 
 # https://docs.python.org/3/library/multiprocessing.html
 Global = Manager().Namespace()
@@ -53,7 +53,6 @@ def _capture(read_frame_list, Global, worker_num):
 
 
 def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
-    time.sleep(3)
     print(f"process {worker_id} started!")
     known_face_encodings = Global.known_face_encodings
     known_face_names = Global.known_face_names
@@ -73,39 +72,42 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
         # En modo roam buscamos el camino
         if Global.task == "roam":
-            if not Global.sent:
-                # Solo uno a la vez
-                Global.sent = True
-                # Inicializamos lector de qr
-                qcd = cv2.QRCodeDetector()
-                # Si se detecta un QR retval devuelve True
-                retval, decoded_info, ps, straight_qrcode = qcd.detectAndDecodeMulti(frame)
-                if retval:
-                    # Dibujamos polígono donde se encuentran los puntos de el QR
-                    cv2.polylines(frame, ps.astype(int), True, (0, 255, 0), 3)
-                    # Leemos la información del codigo QR y lo juntamos con sus respectivos puntos
-                    for d, ps in zip(decoded_info, ps):
-                        print(d)
-                        if d == "HOLA MUNDO":
-                            Global.salon = d
-                            data.write_event(d)
-                            set_task("recognize")
-                            print('sent')
-                        cv2.putText(frame, d, ps[0].astype(int), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
-                # Si reconoce algo no se llega hasta aqui
-                Global.sent = False
+            
+            hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+
+            # Otsu's Binarization !!!!
+            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            #blur = cv2.GaussianBlur(gray, (9,9), 0)
+            blur = cv2.medianBlur(gray,5)
+            _, mask = cv2.threshold(blur,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+            # Solo uno a la vez
+            # Inicializamos lector de qr
+            qcd = cv2.QRCodeDetector()
+            # Si se detecta un QR retval devuelve True
+            retval, decoded_info, ps, straight_qrcode = qcd.detectAndDecodeMulti(frame)
+            if retval:
+                # Dibujamos polígono donde se encuentran los puntos de el QR
+                cv2.polylines(frame, ps.astype(int), True, (0, 255, 0), 3)
+                # Leemos la información del codigo QR y lo juntamos con sus respectivos puntos
+                for decoded_salon, ps in zip(decoded_info, ps):
+                    print(decoded_salon)
+                    if decoded_salon == "iSalon1":
+                        data.write_stop(decoded_salon)
+                        Global.salon = decoded_salon
+                        set_task("recognize")
+                    cv2.putText(frame, decoded_salon, ps[0].astype(int), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
+            # Si reconoce algo no se llega hasta aqui
             # resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
 
             # convertimos el espacio de color a hsv (más facil procesar el rango de colores)
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
             # bounds de los colores en hsv
             # HSV en OpenCV es: H: H/2 (360 -> 160), S: S/100*255 (100 -> 255), V: V/100*255 (100 -> 255) !!!!
-            low_b = np.uint8([100, 0, 160])
-            high_b = np.uint8([255, 200, 255])
+            low_b = np.uint8([0, 0, 20])
+            high_b = np.uint8([60, 100, 200])
 
             # mascara donde calculamos buscamos los colores dentro del rango especificado arriba
-            mask = cv2.inRange(hsv, low_b, high_b)
+            #mask = cv2.inRange(hsv, low_b, high_b)
 
             # https://docs.opencv.org/4.x/d3/dc0/group__imgproc__shape.html
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
@@ -127,13 +129,13 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                         print("CX: " + str(cx) + " CY: " + str(cy))
 
                         # Segun la ubicación virtual del centroide elegimos a donde ir
-                        if cx <= 250:
+                        if cx <= 225:
                             print("izquierda")
                             a = "l"
-                        if 250 < cx < 332:
+                        if 225 < cx < 356:
                             print("centro")
                             a = "f"
-                        if cx >= 332:
+                        if cx >= 356:
                             print("derecha")
                             a = "r"
                         # Dibujamos el centroide
@@ -142,9 +144,9 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                         # Iniciamos proceso para movimiento segun la ubicación del centroide
                         movement.move(a, Global)
                         # bounding boxes para decicion de girar
-                cv2.rectangle(frame, (0, 0), (250, 436), (255, 0, 0), 1)
-                cv2.rectangle(frame, (250, 0), (332, 436), (255, 0, 0), 1)
-                cv2.rectangle(frame, (332, 0), (581, 436), (255, 0, 0), 1)
+                cv2.rectangle(frame, (0, 0), (225, 436), (255, 0, 0), 1)
+                cv2.rectangle(frame, (225, 0), (356, 436), (255, 0, 0), 1)
+                cv2.rectangle(frame, (356, 0), (581, 436), (255, 0, 0), 1)
                 cv2.drawContours(frame, c, -1, (0, 255,), 6, )
 
         if Global.task == "recognize" and Global.sent == False:
@@ -177,9 +179,10 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                 # conocemos De lo contrario el nombre se mantiene como desconocido
                 if face_distance < 0.45:
                     if matches[best_match_index]:
-                        name = known_face_names[best_match_index]
-                        print(name)
-                        data.write_event(Global.salon, name)
+                        id = known_face_names[best_match_index]
+                        (flag, name) = data.write_rec(Global.salon, id)
+                        if flag:
+                            voice.saludar(name)
                         set_task("roam")
                 names.append(name)
 
@@ -207,7 +210,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
         encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 65, int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
                          int(cv2.IMWRITE_JPEG_OPTIMIZE), 1]
-        (flag, encodedImage) = cv2.imencode(".jpg", frame, encode_params)
+        (_, encodedImage) = cv2.imencode(".jpg", frame, encode_params)
 
         # Escribir frame en Global
         write_frame_list[worker_id] = encodedImage

@@ -5,7 +5,7 @@ import sys
 from flask import Flask, render_template, Response, send_from_directory
 from flask_socketio import SocketIO, emit
 
-from cogs import processing, movement, data
+from cogs import processing, movement, data, voice
 
 try:
     arg = sys.argv[1]
@@ -38,6 +38,11 @@ def index():
     """Video streaming home page."""
     events = data.read_events()
     return render_template('index.html', events=events)
+
+@app.route('/config')
+def config():
+    maestros = data.read_maestros()
+    return render_template('config.html', maestros=maestros)
 
 
 # SocketIO para recibir mensajes de la aplicacion web

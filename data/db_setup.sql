@@ -1,14 +1,20 @@
 CREATE TABLE maestros (
-    maestroid INTEGER PRIMARY KEY NOT NULL, 
+    id INTEGER PRIMARY KEY NOT NULL, 
     nombre TEXT NOT NULL
     );
 
 CREATE TABLE eventos (
-    eventoid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     tipo TEXT NOT NULL,
     salon TEXT NOT NULL,
     tiempo TEXT NOT NULL,
     unix INTEGER NOT NULL,
     maestro INTEGER, 
-    FOREIGN KEY(Maestro) REFERENCES maestros(maestroid)
+    FOREIGN KEY(Maestro) REFERENCES maestros(id)
+    );
+
+CREATE TABLE salones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    nombre TEXT NOT NULL,
+    orientacion INTEGER NOT NULL
     );
