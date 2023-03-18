@@ -13,7 +13,7 @@ Global = Manager().Namespace()
 read_frame_list = Manager().dict()
 write_frame_list = Manager().dict()
 
-workers = 2  # 3 workers + camara
+workers = 4  # 3 workers + camara
 
 
 def next_id(current_id, worker_num):
@@ -105,9 +105,9 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             # convertimos el espacio de color a hsv (más facil procesar el rango de colores)
 
             # bounds de los colores en hsv
-            # HSV en OpenCV es: H: H/2 (360 -> 145), S: S/100*255 (100 -> 255), V: V/100*255 (100 -> 255) !!!!
+            # HSV en OpenCV es: H: H/2 (360 -> 100), S: S/100*255 (100 -> 255), V: V/100*255 (100 -> 255) !!!!
             low_b = np.uint8([0, 0, 0])
-            high_b = np.uint8([145, 90, 50])
+            high_b = np.uint8([180, 90, 50])
 
             # mascara donde calculamos buscamos los colores dentro del rango especificado arriba
             mask = cv2.inRange(hsv, low_b, high_b)
@@ -125,43 +125,32 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                 if M["m00"] != 0:
                     t = 0
                     cx = int(M['m10'] / M['m00'])
-                    cy = int(M['m01'] / M['m00'])
-                    print("CX: " + str(cx) + " CY: " + str(cy))
+                    #cy = int(M['m01'] / M['m00'])
 
                     # Segun la ubicación virtual del centroide elegimos a donde ir
-                    if cx <= 145:
-                        Global.find_center = True
+                    if cx <= 100:
                         Global.f = 'l'
-                        print("izquierda")
-                    if cx > 145 and cx < 200:
+                    if cx > 100 and cx < 200:
                         Global.f = 'ml'
-                        print("medioizquierda")
-                        Global.find_center = True
                     if cx > 200 and cx < 381:
                         Global.f = 'f'
-                        print("centro")
-                        Global.find_center = False
-                    if cx > 381 and cx < 446:
+                    if cx > 381 and cx < 481:
                         Global.f = 'mr'
-                        Global.find_center = True
-                        print("medioderecha")
-                    if cx >= 446:
+                    if cx >= 481:
                         Global.f = 'r'
-                        Global.find_center = True
-                        print("derecha")
                     # Dibujamos el centroide
-                    cv2.circle(frame, (cx, cy), 1, (0, 0, 255), 3)
+                    cv2.circle(frame, (cx, 218), 1, (0, 0, 255), 3)
 
                     # Iniciamos proceso para movimiento segun la ubicación del centroide
                     cv2.drawContours(frame, c, -1, (0, 255,), 6, )
                     # bounding boxes para decicion de girar
-            cv2.rectangle(frame, (0, 0), (145, 436), (255, 0, 0), 1)
-            cv2.rectangle(frame, (145, 0), (200, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (0, 0), (100, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (100, 0), (200, 436), (255, 0, 0), 1)
             
             cv2.rectangle(frame, (200, 0), (381, 436), (255, 0, 0), 1)
             
-            cv2.rectangle(frame, (381, 0), (446, 436), (255, 0, 0), 1)
-            cv2.rectangle(frame, (446, 0), (581, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (381, 0), (481, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (481, 0), (581, 436), (255, 0, 0), 1)
             
 
         if Global.task == "recognize":

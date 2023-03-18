@@ -88,4 +88,4 @@ def handle_message(data):
 if __name__ == '__main__':
     processing.start()
     data.setup_db()
-    socketio.run(app, host='0.0.0.0', ssl_context='adhoc')
+    socketio.run(app, host='0.0.0.0') #ssl_context='adhoc'

@@ -24,46 +24,57 @@ def move(Global=None):
 def _move(Global):
     i = Motor("GPIO16", "GPIO12")
     d = Motor("GPIO20", "GPIO21")
-    fs = 0.35
-    s = 0.7
+    fs = 0.5
+    s = 0.9
     # Si no venimos de un proceso ignoramos Globla
     while True:
         if Global.task == "roam":
         # Por razones de no confundirme, los motores estan nombrados al revez
         # Esto porque al acelerar los motores de un lado giramos a el otro
             if Global.f == 'f':
-                while not Global.find_center:
-                    time.sleep(0.4)
-                    d.value= 0
-                    i.value= 0
-                    time.sleep(0.4)
-                    d.value= fs
-                    i.value= fs
+                time.sleep(0.2)
+                d.value= 0
+                i.value= 0
+                time.sleep(0.2)
+                d.value= fs
+                i.value= fs
             # GIRAR a la Izquierda
-            elif Global.f == 'l':
-                while Global.find_center:
-                    d.value= 0
-                    i.value= s
+            if Global.f == 'l':
+                time.sleep(0.15)
+                d.value= 0
+                i.value= s
+                time.sleep(0.15)
+                d.value= 0
+                i.value= 0
             # GIRAR a la Derecha
-            elif Global.f == 'r':
-                while Global.find_center:
-                    i.value= 0
-                    d.value= s
-            elif Global.f == 'mr':
-                while Global.find_center:
-                    i.value= 0
-                    d.value= s -0.1
-                    time.sleep(0.03)
-                    Global.find_center = False
-            elif Global.f == 'ml':
-                while Global.find_center:
-                    d.value= 0
-                    i.value= s -0.1
-                    time.sleep(0.03)
-                    Global.find_center = False
-            elif Global.f == "b":
+            if Global.f == 'r':
+                time.sleep(0.15)
+                i.value= 0
+                d.value= s
+                time.sleep(0.15)
+                d.value= 0
+                i.value= 0
+            if Global.f == 'mr':
+                time.sleep(0.15)
+                i.value= 0
+                d.value= s - 0.06
+                time.sleep(0.15)
+                d.value= 0
+                i.value= 0
+            if Global.f == 'ml':
+                time.sleep(0.15)
+                d.value= 0
+                i.value= s - 0.06
+                time.sleep(0.15)
+                d.value= 0
+                i.value= 0
+            if Global.f == "b":
                 i.value = -1
                 d.value = -1
+        else:
+            Global.find_center = False
+            d.value= 0
+            i.value= 0
     # En caso de que vengamos de un proceso, indicar que ya no nos estamos moviendo
     
 
@@ -88,7 +99,7 @@ def servo(arg=None, x=None, y=None):
         elif arg == "-x":
             servoX.value -= 0.1
         elif arg == "roam":
-            servoY.value = -0.6
+            servoY.value = -0.7
             servoX.value = 0
         elif arg == "recognize":
             servoY.value = 0.5

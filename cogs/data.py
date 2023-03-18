@@ -201,7 +201,7 @@ def write_to_dataset(frame, name):
     data = cur.execute('''SELECT id 
                           FROM maestros 
                           ORDER BY id DESC LIMIT 1;''').fetchone()
-    print(data)
+    print(f'maestros {data}')
     if data is not None:
         cv2.imwrite(f"dataset/{int(data['id']) + 1}_{name}.jpg", frame)
     else:
