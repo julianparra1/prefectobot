@@ -13,7 +13,7 @@ Global = Manager().Namespace()
 read_frame_list = Manager().dict()
 write_frame_list = Manager().dict()
 
-workers = 4  # 3 workers + camara
+workers = 2  # 3 workers + camara
 
 
 def next_id(current_id, worker_num):
@@ -72,14 +72,17 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
         # En modo roam buscamos el camino
         if Global.task == "roam":
+            #TODO: COLOR BALANCE / BRIGHTNESS 
             
-            hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
             # Otsu's Binarization !!!!
-            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            #gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        
             #blur = cv2.GaussianBlur(gray, (9,9), 0)
-            blur = cv2.medianBlur(gray,5)
-            _, mask = cv2.threshold(blur,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+            
+            #blur = cv2.medianBlur(gray,5)
+            #_, mask = cv2.threshold(blur,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
             # Solo uno a la vez
             # Inicializamos lector de qr
             qcd = cv2.QRCodeDetector()
@@ -102,54 +105,66 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             # convertimos el espacio de color a hsv (más facil procesar el rango de colores)
 
             # bounds de los colores en hsv
-            # HSV en OpenCV es: H: H/2 (360 -> 160), S: S/100*255 (100 -> 255), V: V/100*255 (100 -> 255) !!!!
-            low_b = np.uint8([0, 0, 20])
-            high_b = np.uint8([60, 100, 200])
+            # HSV en OpenCV es: H: H/2 (360 -> 145), S: S/100*255 (100 -> 255), V: V/100*255 (100 -> 255) !!!!
+            low_b = np.uint8([0, 0, 0])
+            high_b = np.uint8([145, 90, 50])
 
             # mascara donde calculamos buscamos los colores dentro del rango especificado arriba
-            #mask = cv2.inRange(hsv, low_b, high_b)
+            mask = cv2.inRange(hsv, low_b, high_b)
 
             # https://docs.opencv.org/4.x/d3/dc0/group__imgproc__shape.html
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
             if len(contours) > 0:
                 # busca el contorno mas grande
                 c = max(contours, key=cv2.contourArea)
-
-                # Si ya se esta en movimiento no calcular centroide
-                if not Global.moving:
-
                     # momentos calcula el centroide de la figura
                     # https://en.wikipedia.org/wiki/Image_moment
                     # https://docs.opencv.org/3.1.0/dd/d49/tutorial_py_contour_features.html
                     # todo lo hace el computador 🙏👍
-                    M = cv2.moments(c)
-                    if M["m00"] != 0:
-                        cx = int(M['m10'] / M['m00'])
-                        cy = int(M['m01'] / M['m00'])
-                        print("CX: " + str(cx) + " CY: " + str(cy))
+                M = cv2.moments(c)
+                if M["m00"] != 0:
+                    t = 0
+                    cx = int(M['m10'] / M['m00'])
+                    cy = int(M['m01'] / M['m00'])
+                    print("CX: " + str(cx) + " CY: " + str(cy))
 
-                        # Segun la ubicación virtual del centroide elegimos a donde ir
-                        if cx <= 225:
-                            print("izquierda")
-                            a = "l"
-                        if 225 < cx < 356:
-                            print("centro")
-                            a = "f"
-                        if cx >= 356:
-                            print("derecha")
-                            a = "r"
-                        # Dibujamos el centroide
-                        cv2.circle(frame, (cx, cy), 1, (0, 0, 255), 3)
+                    # Segun la ubicación virtual del centroide elegimos a donde ir
+                    if cx <= 145:
+                        Global.find_center = True
+                        Global.f = 'l'
+                        print("izquierda")
+                    if cx > 145 and cx < 200:
+                        Global.f = 'ml'
+                        print("medioizquierda")
+                        Global.find_center = True
+                    if cx > 200 and cx < 381:
+                        Global.f = 'f'
+                        print("centro")
+                        Global.find_center = False
+                    if cx > 381 and cx < 446:
+                        Global.f = 'mr'
+                        Global.find_center = True
+                        print("medioderecha")
+                    if cx >= 446:
+                        Global.f = 'r'
+                        Global.find_center = True
+                        print("derecha")
+                    # Dibujamos el centroide
+                    cv2.circle(frame, (cx, cy), 1, (0, 0, 255), 3)
 
-                        # Iniciamos proceso para movimiento segun la ubicación del centroide
-                        movement.move(a, Global)
-                        # bounding boxes para decicion de girar
-                cv2.rectangle(frame, (0, 0), (225, 436), (255, 0, 0), 1)
-                cv2.rectangle(frame, (225, 0), (356, 436), (255, 0, 0), 1)
-                cv2.rectangle(frame, (356, 0), (581, 436), (255, 0, 0), 1)
-                cv2.drawContours(frame, c, -1, (0, 255,), 6, )
+                    # Iniciamos proceso para movimiento segun la ubicación del centroide
+                    cv2.drawContours(frame, c, -1, (0, 255,), 6, )
+                    # bounding boxes para decicion de girar
+            cv2.rectangle(frame, (0, 0), (145, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (145, 0), (200, 436), (255, 0, 0), 1)
+            
+            cv2.rectangle(frame, (200, 0), (381, 436), (255, 0, 0), 1)
+            
+            cv2.rectangle(frame, (381, 0), (446, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (446, 0), (581, 436), (255, 0, 0), 1)
+            
 
-        if Global.task == "recognize" and Global.sent == False:
+        if Global.task == "recognize":
 
             # Achicamos el frame para procesarlo mas rapido
             resized_frame = cv2.resize(frame, (0, 0), fx=0.4, fy=0.4)
@@ -238,18 +253,16 @@ def capture(name):
         # Convertir a Escala de grises
         # Buscar caras
         face_locations = face_recognition.face_locations(frame)
-        print("saving...")
         for (top, right, bottom, left) in face_locations:
             # [top:bottom, left:right]
             data.write_to_dataset(frame, name)
-            print("saved")
+            print("SAVED!")
             return
 
 
 def set_task(task):
     movement.servo(task)
     Global.task = task
-    Global.sent = False
 
 
 def start():
@@ -261,9 +274,9 @@ def start():
     Global.is_exit = False
     Global.task = "none"
     Global.salon = ""
-    Global.sent = False
+    Global.find_center = False
+    Global.f = ""
 
-    # cargar imagenes y crear sus encodings
     # Lee el diccionario que guardamos
     # Y lo separa por keys (names) y values (encodings)
     encodings, names = data.read_encodings()
@@ -281,8 +294,11 @@ def start():
     # Iniciamos proceso de captura de frames de la camara
     p.append(Process(target=_capture, args=(read_frame_list, Global, workers,)))
     p[0].start()
+    
 
     # Abrimos un proceso nuevo segun los workers que asignamos
     for worker_id in range(1, workers + 1):
         p.append(Process(target=process, args=(worker_id, read_frame_list, write_frame_list, Global, workers)))
         p[worker_id].start()
+    
+    movement.move(Global)

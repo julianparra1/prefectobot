@@ -49,14 +49,13 @@ def write_encodings(directory):
         # Conseguir el Nombre sin extension de archivo
         f_name = os.path.splitext(file_name)[0]
 
-        # TODO: SPLIT TEXT AT '_'
         id_name = f_name.split('_')
         m_id = id_name[0]
         name = id_name[1]
 
-        values = (m_id, name)
+        values = (m_id, name, file_name)
 
-        cur.execute("INSERT INTO maestros(id, nombre) VALUES (?,?)", values)
+        cur.execute("INSERT INTO maestros(id, nombre, file_url) VALUES (?,?,?)", values)
         db.commit()
 
         # Cargar la imagen usando su ubicacion    
@@ -65,7 +64,7 @@ def write_encodings(directory):
         face_encoding = face_recognition.face_encodings(face_img)[0]
 
         # Agregar el encoding a el diccionario
-        # ([name]: [encoding])
+        # {[name]: [encoding]}
         known_face_encodings[m_id] = face_encoding
     # Guardar el diccionario en el archivo para ser leido despues
     with open('data/face_encodings.dat', 'wb') as f:
@@ -229,3 +228,33 @@ def read_events():
 
     # Esto se regresa a la template de index
     return events
+
+def read_salones():
+    db = get_db()
+    # Une la tabla Eventos donde la id de Maestro es igual y agrega su nombre
+    salones = db.execute('SELECT * FROM Salones').fetchall()
+    db.close()
+
+    # Esto se regresa a la template de index
+    return salones
+
+def add_salon(name):
+    print(name)
+    
+    db = get_db()
+    cur = db.cursor()
+        
+    cur.execute("INSERT INTO salones(nombre) VALUES(?)", (name,))
+    db.commit()
+    
+    id = cur.execute('''SELECT id FROM salones ORDER BY id DESC LIMIT 1;''').fetchone()
+    
+    if id is not None:
+        return id['id']
+
+def del_salon(id):
+    db = get_db()
+    cur = db.cursor()
+        
+    cur.execute("DELETE FROM salones WHERE id = ?", (id,))
+    db.commit()

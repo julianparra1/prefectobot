@@ -5,7 +5,7 @@
 <div class="">
     <img src="{{ url_for('video_feed') }}" height="427px" width="582px">
 </div>
-<div class="md:flex md:gap-x-6">
+<div class="flex gap-x-6">
     <div class="mt-1 flex flex-col items-center" style="font-size: 0px;">
         <div class="">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-camera" viewBox="0 0 16 12"> <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/> <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/> </svg> 
@@ -22,6 +22,7 @@
             <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="cRight">🡇</button>
         </div>
     </div>
+    
     <div class="mt-1 flex flex-col items-center" style="font-size: 0px;">
         <div class="">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-minecart" viewBox="0 0 16 16"> <path d="M4 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8-1a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM.115 3.18A.5.5 0 0 1 .5 3h15a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 14 12H2a.5.5 0 0 1-.491-.408l-1.5-8a.5.5 0 0 1 .106-.411zm.987.82 1.313 7h11.17l1.313-7H1.102z"/> </svg> 
@@ -61,28 +62,28 @@
         <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="imgCapture">Captura</button>
     </div>
 
-    <div class="mt-2 flex flex-col items-center">
+    <div class="mx-4 mt-2 flex flex-col items-center">
         <label class="block text-sm font-medium text-slate-700">Eventos</label>
-        <table class="mt-1 border-collapse rounded-md border border-slate-400 bg-white text-xs md:text-sm shadow-sm">
+        <table class="mt-1 border-collapse rounded-md border border-slate-400 bg-white text-xs text-sm shadow-sm">
             <tr>
-                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">#</th>
-                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Tipo</th>
-                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Salon</th>
-                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Maestro</th>
-                <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Tiempo</th>
+                <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">#</th>
+                <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">Tipo</th>
+                <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">Salon</th>
+                <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">Maestro</th>
+                <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">Tiempo</th>
             </tr>
             <tbody id="tbody">
             {% for event in events %}
                 <tr>
-                    <td class="border border-slate-300 md:p-3.5 text-slate-500" >{{ event['id'] }}</td>
-                    <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Tipo'] }}</td>
-                    <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Salon'] }}</td>
+                    <td class="border border-slate-300 p-3.5 text-slate-500" >{{ event['id'] }}</td>
+                    <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['Tipo'] }}</td>
+                    <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['Salon'] }}</td>
                     {% if event['Nombre'] is not none %}   
-                    <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Nombre'] }}</td>
+                    <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['Nombre'] }}</td>
                     {% else %}
-                    <td class="border border-slate-300 md:p-3.5 text-slate-500">Ninguno</td>
+                    <td class="border border-slate-300 p-3.5 text-slate-500">Ninguno</td>
                     {% endif %}
-                    <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ event['Tiempo'] }}</td>
+                    <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['Tiempo'] }}</td>
                 </tr>
             {% endfor %}
             </tbody>
@@ -93,110 +94,71 @@
 {% endblock %}
 
 {% block script %}
-<script type="module">
-    import { io } from "https://cdn.socket.io/4.4.1/socket.io.esm.min.js";
+<script>
+
     const socket = io();
-    
-    const cUp = document.querySelector("#cUp");
-    const cDown = document.querySelector("#cDown");
-
-    const cLeft = document.querySelector("#cLeft");
-    const cRight = document.querySelector("#cRight");
-
-    const mUp = document.querySelector("#mUp");
-    const mDown = document.querySelector("#mDown");
-
-    const mLeft = document.querySelector("#mLeft");
-    const mRight = document.querySelector("#mRight");
-
-    const tRoam = document.querySelector("#tRoam");
-    const tRec = document.querySelector("#tRec");
-
-    const imgCapture = document.querySelector("#imgCapture");
-    
-    const tbody = document.querySelector("#tbody");
-    const tInput = document.querySelector("#name");
 
     function addRow(id, tipo, salon, maestro, tiempo) {
         if (maestro == undefined) {
             maestro = "Ninguno"
         }
 
-    let newRow = tbody.insertRow(-1);
-
-    let cId = newRow.insertCell(0);
-    let cTipo = newRow.insertCell(1);
-    let cSalon = newRow.insertCell(2);
-    let cMaestro = newRow.insertCell(3);
-    let cTiempo = newRow.insertCell(4);
-
-
-    let txtId = document.createTextNode(id);
-    let txtTipo = document.createTextNode(tipo);
-    let txtSalon = document.createTextNode(salon);
-    let txtMaestro = document.createTextNode(maestro);
-    let txtTiempo = document.createTextNode(tiempo);
-
-    cId.appendChild(txtId);
-    cTipo.appendChild(txtTipo);
-    cSalon.appendChild(txtSalon);
-    cMaestro.appendChild(txtMaestro);
-    cTiempo.appendChild(txtTiempo);
-    
-    const style = ["border", "border-slate-300", "md:p-3.5", "text-slate-500"]
-
-    cId.classList.add(...style);
-    cTipo.classList.add(...style);
-    cSalon.classList.add(...style);
-    cMaestro.classList.add(...style);
-    cTiempo.classList.add(...style);
+        $("#tbody").append(`
+        <tr> 
+            <td class="border border-slate-300 p-3.5 text-slate-500">${id}</td>
+            <td class="border border-slate-300 p-3.5 text-slate-500">${tipo}</td>
+            <td class="border border-slate-300 p-3.5 text-slate-500">${salon}</td>
+            <td class="border border-slate-300 p-3.5 text-slate-500">${maestro}</td>
+            <td class="border border-slate-300 p-3.5 text-slate-500">${tiempo}</td>
+        </tr>`);
     }
 
-    imgCapture.addEventListener('click', function () {
+    $("#imgCapture").click(function () {
 	socket.emit('capture', tInput.value);
     })
-    cUp.addEventListener('click', function () {
+    $("#cUp").click('click', function () {
         console.log("+y");
         socket.emit("servo", "+y");
     })
-    cDown.addEventListener('click', function () {
+    $("#cDown").click(function () {
         console.log("-y");
         socket.emit("servo", "-y");
     })
-    cLeft.addEventListener('click', function () {
+    $("#cLeft").click(function () {
         console.log("+x");
         socket.emit("servo", "+x");
     })
-    cRight.addEventListener('click', function () {
+
+    $("#cRight").click(function () {
         console.log("-x");
         socket.emit("servo", "-x");
     })
 
-    mUp.addEventListener('click', function () {
+    $("#mUp").click(function () {
         console.log("forward");
         socket.emit("motor", "f");
     })
-    mDown.addEventListener('click', function () {
-        console.log("forward");
+    $("#mDown").click(function () {
+        console.log("back");
         socket.emit("motor", "b");
     })
-    mLeft.addEventListener('click', function () {
+    $("#mLeft").click(function () {
         console.log("left");
         socket.emit("motor", "l");
     })
-    mRight.addEventListener('click', function () {
+    $("#mRight").click(function () {
         console.log("right");
         socket.emit("motor", "r");
     })
-    tRoam.addEventListener('click', function () {
+    $("#tRoam").click(function () {
         console.log("task: roam");
         socket.emit("set_task", "roam");
     })
-    tRec.addEventListener('click', function () {
+    $("#tRec").click(function () {
         console.log("task: recognize");
         socket.emit("set_task", "recognize");
     })
-    tNone.addEventListener('click', function () {
+    $("#tNone").click(function () {
         console.log("task: none");
         socket.emit("set_task", "none");
     })

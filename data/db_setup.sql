@@ -1,6 +1,7 @@
 CREATE TABLE maestros (
-    id INTEGER PRIMARY KEY NOT NULL, 
-    nombre TEXT NOT NULL
+    id INTEGER PRIMARY KEY NOT NULL,
+    nombre TEXT NOT NULL,
+    file_url TEXT NOT NULL
     );
 
 CREATE TABLE eventos (
@@ -15,6 +16,5 @@ CREATE TABLE eventos (
 
 CREATE TABLE salones (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    nombre TEXT NOT NULL,
-    orientacion INTEGER NOT NULL
+    nombre TEXT NOT NULL
     );

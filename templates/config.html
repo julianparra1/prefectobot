@@ -2,25 +2,110 @@
 {% block title %}Config ⚙️{% endblock %}
 {% block content %}
 
-<div class="mt-2 flex flex-col items-center">
-    
-</div>
-
-<div class="mt-2 flex flex-col items-center">
-    <label class="block text-sm font-medium text-slate-700">Eventos</label>
+<div class="mx-4 mt-2 flex flex-col items-center">
+    <label class="block text-sm font-medium text-slate-700">Salones</label>
     <table class="mt-1 border-collapse rounded-md border border-slate-400 bg-white text-xs md:text-sm shadow-sm">
         <tr>
-            <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">ID</th>
-            <th class="border border-slate-300 font-semibold md:p-3.5 text-slate-900 text-center scope="col">Nombre</th>
+            <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">ID</th>
+            <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">Nombre</th>
+            <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">Opciones</th>
+        </tr>
+        <tbody id="tbody">
+        {% for salon in salones %}
+            <tr>
+                <td class="border border-slate-300 p-3.5 text-slate-500" >{{ salon['id'] }}</td>
+                <td class="border border-slate-300 p-3.5 text-slate-500">{{ salon['nombre'] }}</td>
+                <td class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">
+                    <button value="{{ salon['id'] }}" onclick="printqr(this)" class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm">🖨️</button>
+                    <button value="{{ salon['id'] }}" onclick="deleteRow(this)" class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm">❌</button>
+
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="2" class="border p-3.5 text-slate-500">
+                    <input id="txtSalon" class="text-sm px-2 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 rounded-md focus:outline-none focus:border-purple-400 focus:ring-purple-400" type="text" id="nuevoSalon" placeholder="Nombre Salon">
+                </td>
+                <td class="border p-3.5 text-slate-500">
+                    <button id="btnSalon" class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm">➕</button>
+                </td>
+                
+            </tr>
+        </tfoot>
+    </table>
+</div>
+<div class="collapse" id="qr"></div>
+<div class="mx-4 mt-2 flex flex-col items-center">
+    <label class="block text-sm font-medium text-slate-700">Maestros</label>
+    <table class="mt-1 border-collapse rounded-md border border-slate-400 bg-white text-sm shadow-sm">
+        <tr>
+            <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">ID</th>
+            <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">Nombre</th>
+            <th class="border border-slate-300 font-semibold p-3.5 text-slate-900 text-center" scope="col">Imagen</th>
+
         </tr>
         <tbody id="tbody">
         {% for maestro in maestros %}
             <tr>
-                <td class="border border-slate-300 md:p-3.5 text-slate-500" >{{ maestro['id'] }}</td>
-                <td class="border border-slate-300 md:p-3.5 text-slate-500">{{ maestro['nombre'] }}</td>
+                <td class="border border-slate-300 p-3.5 text-slate-500" >{{ maestro['id'] }}</td>
+                <td class="border border-slate-300 p-3.5 text-slate-500">{{ maestro['nombre'] }}</td>
+                <td class="border border-slate-300 p-3.5 text-slate-500"> <img src="dataset/{{ maestro['file_url'] }}" alt=""> </td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
 </div>
+
+<script>
+    // qr code library sucks!!!
+    // but you can just `new QRCode(...);` to append a qr code
+    // perhaps you can put them inside a flex box for printing ?
+
+    const socket = io();
+
+    
+    const btnSalon = document.querySelector("#btnSalon");
+    const txtSalon = document.querySelector("#txtSalon");
+    const tbody = document.querySelector("#tbody");
+
+    var qrcode = new QRCode('qr', "0");
+
+    function deleteRow(btn) {  
+        console.log(btn)
+        socket.emit("del_salon", btn.value);
+        $(btn).closest('tr').remove()
+    }
+
+    function printqr(btn) {  
+        qrcode.makeCode(btn.value);
+        
+        popup = window.open();
+        popup.document.write(`${ $("#qr").html()  }`);
+        popup.print();
+    }
+
+    function addSalon(id, nombre) {
+        $("#tbody").append(`
+        <tr> 
+            <td class="border border-slate-300 p-3.5 text-slate-500">${id}</td>
+            <td class="border border-slate-300 p-3.5 text-slate-500">${nombre}</td>
+            <td class="border border-slate-300 p-3.5 text-slate-500">
+                <button value="${id}" onclick="printqr(this)" class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm">🖨️</button>
+                <button value="${id}" onclick="deleteRow(this)" class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm">❌</button>
+            </td>
+        </tr>`);
+    }
+
+    btnSalon.addEventListener('click', function () {
+        socket.emit("add_salon", txtSalon.value);
+    })
+
+    socket.on("add_salon", ({id, nombre}) => {
+        addSalon(id, nombre)
+    });
+
+
+</script>
 {% endblock %}

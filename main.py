@@ -41,8 +41,9 @@ def index():
 
 @app.route('/config')
 def config():
+    salones = data.read_salones()
     maestros = data.read_maestros()
-    return render_template('config.html', maestros=maestros)
+    return render_template('config.html', salones=salones, maestros=maestros)
 
 
 # SocketIO para recibir mensajes de la aplicacion web
@@ -50,6 +51,17 @@ def config():
 @socketio.on('event')
 def handle_message(data):
     emit('event', data, broadcast=True)
+    
+@socketio.on('add_salon')
+def handle_message(name):
+    print(name)
+    id = data.add_salon(name)
+    emit('add_salon', {'id': int(id), 'nombre': name}, broadcast=True)
+
+@socketio.on('del_salon')
+def handle_message(id):
+    data.del_salon(id)
+
 
 
 @socketio.on('servo')  # Controlar Servo
@@ -73,8 +85,7 @@ def handle_message(data):
     print("CAPTURE")
     processing.capture(data)
 
-
 if __name__ == '__main__':
     processing.start()
     data.setup_db()
-    socketio.run(app, host='0.0.0.0')
+    socketio.run(app, host='0.0.0.0', ssl_context='adhoc')
