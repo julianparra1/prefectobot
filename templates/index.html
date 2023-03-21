@@ -38,7 +38,7 @@
         <div class="mt-1">
             <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mLeft">🡄</button>
             <button class="mx-1 bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mDown">🡇</button>
-            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mRight">🡇</button>
+            <button class="bg-purple-300 hover:bg-purple-400 cursor-pointer px-5 py-2 text-sm leading-5 rounded-md font-semibold text-purple-100 shadow-sm" id="mRight">🡆</button>
         </div>
     </div>
 </div>
@@ -134,22 +134,27 @@
         socket.emit("servo", "-x");
     })
 
-    $("#mUp").click(function () {
+    $("#mUp").bind("mousedown pointerdown", function () {
         console.log("forward");
         socket.emit("motor", "f");
     })
-    $("#mDown").click(function () {
+    $("#mDown").bind("mousedown pointerdown", function () {
         console.log("back");
         socket.emit("motor", "b");
     })
-    $("#mLeft").click(function () {
+    $("#mLeft").bind("mousedown pointerdown", function () {
         console.log("left");
         socket.emit("motor", "l");
     })
-    $("#mRight").click(function () {
+    $("#mRight").bind("mousedown pointerdown", function () {
         console.log("right");
         socket.emit("motor", "r");
     })
+
+    $("#mUp, #mDown, #mLeft, #mRight").bind("mouseup pointerout touchend click", function () {
+        socket.emit("motor", "s");
+    })
+
     $("#tRoam").click(function () {
         console.log("task: roam");
         socket.emit("set_task", "roam");

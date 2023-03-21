@@ -15,13 +15,10 @@ import cv2
 
 from cogs import movement, data, voice
 
-# https://docs.python.org/3/library/multiprocessing.html
-Global = Manager().Namespace()
-read_frame_list = Manager().dict()
-write_frame_list = Manager().dict()
-
 workers = 4  # 3 workers + camara
 
+read_frame_list = Manager().dict()
+write_frame_list = Manager().dict()
 
 def next_id(current_id, worker_num):
     if current_id == worker_num:
@@ -47,12 +44,17 @@ def _capture(read_frame_list, Global, worker_num):
     picam2.set_controls({"AfMode": 2, "AfTrigger": 0})
     picam2.start()
 
+    
     while True:
         # Esperar a ver si ya termino de leer el proceso anterior
         if Global.buff_num != next_id(Global.read_num, worker_num):
             # Escribir frame para el worker con el id que sigue
             frame = picam2.capture_array("main")
+            
+            #Brillo
+            cv2.convertScaleAbs(frame, alpha=Global.alpha, beta=Global.beta)
             resized = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+            
             read_frame_list[Global.buff_num] = resized
             Global.buff_num = next_id(Global.buff_num, worker_num)
         else:
@@ -122,7 +124,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                             # Este es el salon en que se hara la deteccion
                             Global.salon = decoded_salon
                             # Cambiamos la tarea a reconocimiento 
-                            set_task("recognize")
+                            set_task(Global, "recognize")
                             
 
                         # Cuadro con texto decodificado del codigo qr
@@ -235,7 +237,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                         if flag:
                             voice.saludar(name)
                         # Al terminar volvemos a buscar la linea
-                        set_task("roam")
+                        set_task(Global, "roam")
                 # Agregamos la cara encontrada a la lista
                 names.append(name)
 
@@ -278,7 +280,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
         Global.write_num = next_id(Global.write_num, worker_num)
 
 
-def get_frames():
+def get_frames(Global):
     last_num = 1
     while True:
         # Checar si no es el mismo frame que el anterior
@@ -290,7 +292,7 @@ def get_frames():
                 write_frame_list[prev_id(Global.write_num, workers)]) + b'\r\n')
 
 
-def capture(name):
+def capture(Global, name):
     # Leer el frame actual
     if Global.read_num != prev_id(Global.buff_num, workers):
         frame = read_frame_list[Global.read_num]
@@ -304,15 +306,18 @@ def capture(name):
             return
 
 
-def set_task(task):
+def set_task(Global, task):
     # Cada tarea tiene una posicion de camara diferente
     movement.servo(task)
     # Asignamos la tarea
     Global.task = task
 
 
-def start():
+def start(Global):
     # Variables globales y seguras para multiprocesamiento
+    Global.alpha = 1.0
+    Global.beta = 0
+    
     Global.buff_num = 1
     Global.read_num = 1
     Global.write_num = 1

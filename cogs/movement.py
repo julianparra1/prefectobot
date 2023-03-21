@@ -45,43 +45,68 @@ def _move(Global):
                 time.sleep(0.2)
                 d.value= fs
                 i.value= fs
+            
             # GIRAR a la Izquierda
             if Global.f == 'l':
                 time.sleep(0.15)
-                d.value= 0
-                i.value= s
+                d.value = 0
+                i.value = s
                 time.sleep(0.15)
-                d.value= 0
-                i.value= 0
+                d.value = 0
+                i.value = 0
+                
             # GIRAR a la Derecha
             if Global.f == 'r':
                 time.sleep(0.15)
-                i.value= 0
-                d.value= s
+                i.value = 0
+                d.value = s
                 time.sleep(0.15)
-                d.value= 0
-                i.value= 0
+                d.value = 0
+                i.value = 0
+                
             if Global.f == 'mr':
                 time.sleep(0.15)
-                i.value= 0
-                d.value= s - 0.06
+                i.value = 0
+                d.value = s - 0.06
                 time.sleep(0.15)
-                d.value= 0
-                i.value= 0
+                d.value = 0
+                i.value = 0
+                
             if Global.f == 'ml':
                 time.sleep(0.15)
-                d.value= 0
-                i.value= s - 0.06
+                d.value = 0
+                i.value = s - 0.06
                 time.sleep(0.15)
-                d.value= 0
-                i.value= 0
+                d.value = 0
+                i.value = 0
+                
+            if Global.f == "b":
+                i.value = -1
+                d.value = -1        
+                
+        elif Global.task == 'none':
+            if Global.f == 's':
+                d.stop()
+                i.stop()
+            if Global.f == 'f':
+                print(f'global movement: {Global.f}')
+                d.value= 1
+                i.value= 1
+            if Global.f == 'l':
+                i.value = 1
+                d.value = 0
+            if Global.f == 'r':
+                i.value = 0
+                d.value = 1
             if Global.f == "b":
                 i.value = -1
                 d.value = -1
         else:
             Global.find_center = False
-            d.value= 0
-            i.value= 0
+            d.value = 0
+            i.value = 0
+            
+            
     # En caso de que vengamos de un proceso, indicar que ya no nos estamos moviendo
     
 

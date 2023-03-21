@@ -22,6 +22,7 @@ import sys
 from flask import Flask, render_template, Response, send_from_directory
 from flask_socketio import SocketIO, emit
 from cogs import processing, movement, data, voice                                                     
+from multiprocessing import Manager
 import logging
 
 # Verificar si existe un argumento
@@ -34,7 +35,8 @@ except IndexError:
 if arg == '-w':
     logging.warning('Watch out!')
     data.write_encodings('dataset/')
-
+    
+Global = Manager().Namespace()
 # Creamos aplicacion de Flask
 # y los 'cubrimos' con la capa de SocketIo
 app = Flask(__name__)
@@ -43,7 +45,7 @@ socketio = SocketIO(app, logger=False)
 # Este es el feed de video donde serializamos la imagen procesada
 @app.route('/video_feed')
 def video_feed():
-    return Response(processing.get_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(processing.get_frames(Global), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # Damos acceso a el directorio donde se encuentran las fotos para reconocimiento
 @app.route('/dataset/<path:path>')
@@ -104,24 +106,25 @@ def handle_message(data):
 # TODO: CONTROL DE RUEDAS
 @socketio.on('motor')  # Controlar Ruedas
 def handle_message(data):
-    movement.move(arg=data)
+    processing.set_task(Global, 'none')
+    Global.f = data
 
 # Cambiar la tarea actual de el robot
 # -> 'roam', 'rec', 'none'
 @socketio.on('set_task')  # Seleccionar tarea
 def handle_message(data):
-    processing.set_task(task=data)
+    processing.set_task(Global, data)
 
 # Al presionar boton de captura
 # -> Pasamos el nombre en el campo captura a el modulo de procesamiento
 @socketio.on('capture')
 def handle_message(data):
-    processing.capture(data)
+    processing.capture(Global, data)
 
 
 if __name__ == '__main__':
     # Inicializa los procesos para el procesamiento de imagenes    
-    processing.start()
+    processing.start(Global)
     
     # Verificamos que todo este bien con la base de datos
     # Tambien nos aseguramos de que exista
