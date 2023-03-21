@@ -1,3 +1,10 @@
+"""
+prefectobot.cogs.data
+~~~~~~~~~~~~~~~~~~~~~
+
+Modulo de manejo de datos de el robot
+"""
+
 from datetime import datetime
 import os
 import sqlite3

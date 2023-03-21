@@ -1,3 +1,6 @@
+--PrefectoBot 
+--Setup de base de datos
+
 CREATE TABLE maestros (
     id INTEGER PRIMARY KEY NOT NULL,
     nombre TEXT NOT NULL,

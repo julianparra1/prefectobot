@@ -1,3 +1,10 @@
+"""
+prefectobot.cogs.movement
+~~~~~~~~~~~~~~~~~~~~~
+
+Modulo de manejo de movimiento de el robot
+"""
+
 from multiprocessing import Process
 from gpiozero import Servo, Motor
 from gpiozero.pins.pigpio import PiGPIOFactory

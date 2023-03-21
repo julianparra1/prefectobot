@@ -1,8 +1,27 @@
+                                                                        
+#  .oPYo.               d'b                 o          .oPYo.          o  
+#  8    8               8                   8          8   `8          8  
+# o8YooP' oPYo. .oPYo. o8P  .oPYo. .oPYo.  o8P .oPYo. o8YooP' .oPYo.  o8P 
+#  8      8  `' 8oooo8  8   8oooo8 8    '   8  8    8  8   `b 8    8   8  
+#  8      8     8.      8   8.     8    .   8  8    8  8    8 8    8   8  
+#  8      8     `Yooo'  8   `Yooo' `YooP'   8  `YooP'  8oooP' `YooP'   8  
+# :..:::::..:::::.....::..:::.....::.....:::..::.....::......::.....:::..:
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+"""
+PrefectoBot
+~~~~~~~~~~~~~~~~~~~~~
+
+Robot con la capacidad de realizar tareas de prefecto 
+
+:copyright: (c) 2023-present by Julian Parra
+:license: MIT License, see LICENSE for more details.
+"""
+
+
 import sys
 from flask import Flask, render_template, Response, send_from_directory
 from flask_socketio import SocketIO, emit
-from cogs import processing, movement, data, voice
-
+from cogs import processing, movement, data, voice                                                     
 import logging
 
 # Verificar si existe un argumento

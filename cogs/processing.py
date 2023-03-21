@@ -1,3 +1,10 @@
+"""
+prefectobot.cogs.processing
+~~~~~~~~~~~~~~~~~~~~~
+
+Modulo de procesamiento de imagenes
+"""
+
 from math import floor
 import time
 from picamera2 import Picamera2

@@ -1,3 +1,9 @@
+"""
+prefectobot.cogs.voice
+~~~~~~~~~~~~~~~~~~~~~
+
+Modulo de manejo de voz
+"""
 import pyttsx3
 
 def saludar(name):
