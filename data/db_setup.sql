@@ -11,7 +11,8 @@ CREATE TABLE eventos (
     tiempo TEXT NOT NULL,
     unix INTEGER NOT NULL,
     maestro INTEGER, 
-    FOREIGN KEY(Maestro) REFERENCES maestros(id)
+    FOREIGN KEY(maestro) REFERENCES maestros(id)
+    FOREIGN KEY(salon) REFERENCES salones(id)
     );
 
 CREATE TABLE salones (

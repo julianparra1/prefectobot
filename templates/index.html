@@ -77,9 +77,9 @@
                 <tr>
                     <td class="border border-slate-300 p-3.5 text-slate-500" >{{ event['id'] }}</td>
                     <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['Tipo'] }}</td>
-                    <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['Salon'] }}</td>
-                    {% if event['Nombre'] is not none %}   
-                    <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['Nombre'] }}</td>
+                    <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['salon_nombre'] }}</td>
+                    {% if event['maestro_nombre'] is not none %}   
+                    <td class="border border-slate-300 p-3.5 text-slate-500">{{ event['maestro_nombre'] }}</td>
                     {% else %}
                     <td class="border border-slate-300 p-3.5 text-slate-500">Ninguno</td>
                     {% endif %}
@@ -114,7 +114,7 @@
     }
 
     $("#imgCapture").click(function () {
-	socket.emit('capture', tInput.value);
+	socket.emit('capture', $("#name").val());
     })
     $("#cUp").click('click', function () {
         console.log("+y");
@@ -166,6 +166,7 @@
     socket.on("event", ({id, tipo, salon, maestro, tiempo}) => {
         addRow(id, tipo, salon, maestro, tiempo)
     });
+
 </script>
 
 {% endblock %}

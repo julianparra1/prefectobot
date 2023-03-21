@@ -53,9 +53,17 @@ def _capture(read_frame_list, Global, worker_num):
 
 
 def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
+    # Proceso ya empezo
     print(f"process {worker_id} started!")
+    
+    # Inicializamos lector de qr
+    qcd = cv2.QRCodeDetector()
+    
+    # Cargamos los encodings con sus respectivos nombres
     known_face_encodings = Global.known_face_encodings
     known_face_names = Global.known_face_names
+    
+    # Loop de el proceso
     while True:
         # Esperamos a que sea nuestro turno para leer
         while Global.read_num != worker_id or Global.read_num != prev_id(Global.buff_num, worker_num):
@@ -67,14 +75,13 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
         # Escribir el trabajador siguiente para que lea
         Global.read_num = next_id(Global.read_num, worker_num)
 
+        # Vemos cual es la tarea actual
         if Global.task == "none":
             pass
 
         # En modo roam buscamos el camino
         if Global.task == "roam":
             #TODO: COLOR BALANCE / BRIGHTNESS 
-            
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
             # Otsu's Binarization !!!!
             #gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
@@ -83,47 +90,72 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             
             #blur = cv2.medianBlur(gray,5)
             #_, mask = cv2.threshold(blur,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-            # Solo uno a la vez
-            # Inicializamos lector de qr
-            qcd = cv2.QRCodeDetector()
-            # Si se detecta un QR retval devuelve True
-            retval, decoded_info, ps, straight_qrcode = qcd.detectAndDecodeMulti(frame)
-            if retval:
-                # Dibujamos polígono donde se encuentran los puntos de el QR
-                cv2.polylines(frame, ps.astype(int), True, (0, 255, 0), 3)
-                # Leemos la información del codigo QR y lo juntamos con sus respectivos puntos
-                for decoded_salon, ps in zip(decoded_info, ps):
-                    print(decoded_salon)
-                    if decoded_salon == "iSalon1":
-                        data.write_stop(decoded_salon)
-                        Global.salon = decoded_salon
-                        set_task("recognize")
-                    cv2.putText(frame, decoded_salon, ps[0].astype(int), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
-            # Si reconoce algo no se llega hasta aqui
+            
+            # Dentro de un try porque hay un problema con OpenCV que es super especifico
+            # Pero crashear significa no mas procesamiento entonces mejor atrapamos el error
+            try:
+                # Si se detecta un QR retval devuelve True
+                retval, decoded_info, ps, straight_qrcode = qcd.detectAndDecodeMulti(frame)
+
+                # Verificamos que todo este bien con el codigo qr....
+                if retval and ps is not None:
+                    
+                    # Dibujamos polígono donde se encuentran los puntos de el QR
+                    cv2.polylines(frame, ps.astype(int), True, (0, 255, 0), 3)
+                    
+                    # Leemos la información del codigo QR y lo juntamos con sus respectivos puntos
+                    for decoded_salon, ps in zip(decoded_info, ps):
+                        
+                        # Verificamos que si se haya leido la informacion de el QR
+                        # y lo comparamos con la base de datos existente de codigos
+                        if decoded_salon != "" and data.salon_check(decoded_salon):
+                            #print(f'Decoded: {decoded_salon}')
+                            # Anunciamos la parada
+                            data.write_stop(decoded_salon)
+                            # Este es el salon en que se hara la deteccion
+                            Global.salon = decoded_salon
+                            # Cambiamos la tarea a reconocimiento 
+                            set_task("recognize")
+                            
+
+                        # Cuadro con texto decodificado del codigo qr
+                        # Como es un poligono el rectangulo puede verse un poco distorcionado     
+                        cv2.putText(frame, decoded_salon, ps[0].astype(int), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1)
+            
+            # Basicamente ignoramos el error.... en este caso no es relevante            
+            except cv2.error as e:
+                print(f'QRCode fail: {e}')
+            
+            
             # resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
-
-            # convertimos el espacio de color a hsv (más facil procesar el rango de colores)
-
-            # bounds de los colores en hsv
+            
+            # Convertimos el espacio de color a hsv (más facil procesar el rango de colores)
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            # Bounds de los colores en hsv
             # HSV en OpenCV es: H: H/2 (360 -> 100), S: S/100*255 (100 -> 255), V: V/100*255 (100 -> 255) !!!!
             low_b = np.uint8([0, 0, 0])
             high_b = np.uint8([180, 90, 50])
 
-            # mascara donde calculamos buscamos los colores dentro del rango especificado arriba
+            # Mascara donde buscamos los colores dentro del rango especificado arriba
             mask = cv2.inRange(hsv, low_b, high_b)
 
             # https://docs.opencv.org/4.x/d3/dc0/group__imgproc__shape.html
+            # Buscamos los contornos en la mascara
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
             if len(contours) > 0:
-                # busca el contorno mas grande
+                # Buscamos el contorno mas grande por area
                 c = max(contours, key=cv2.contourArea)
-                    # momentos calcula el centroide de la figura
-                    # https://en.wikipedia.org/wiki/Image_moment
-                    # https://docs.opencv.org/3.1.0/dd/d49/tutorial_py_contour_features.html
-                    # todo lo hace el computador 🙏👍
+                
+                # Momentos de imagen 
+                # https://en.wikipedia.org/wiki/Image_moment
+                # https://docs.opencv.org/3.1.0/dd/d49/tutorial_py_contour_features.html
+                # todo lo hace el computador 🙏👍    
                 M = cv2.moments(c)
-                if M["m00"] != 0:
-                    t = 0
+                
+                # Si el momento existe y el area del contorno es mayor a 500
+                if M["m00"] != 0 and cv2.contourArea(c) > 500:
+                    
+                    # Solo es relevante la x para nosotros
                     cx = int(M['m10'] / M['m00'])
                     #cy = int(M['m01'] / M['m00'])
 
@@ -143,7 +175,8 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
                     # Iniciamos proceso para movimiento segun la ubicación del centroide
                     cv2.drawContours(frame, c, -1, (0, 255,), 6, )
-                    # bounding boxes para decicion de girar
+            
+            # Bounding boxes para decicion de girar        
             cv2.rectangle(frame, (0, 0), (100, 436), (255, 0, 0), 1)
             cv2.rectangle(frame, (100, 0), (200, 436), (255, 0, 0), 1)
             
@@ -158,18 +191,20 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             # Achicamos el frame para procesarlo mas rapido
             resized_frame = cv2.resize(frame, (0, 0), fx=0.4, fy=0.4)
 
-            # Encontrar las caras en el frame de video y sus encodings
+            # Buscamos las caras en el frame de video y sus encodings en el frame
             face_locations = face_recognition.face_locations(resized_frame)
             face_encodings = face_recognition.face_encodings(resized_frame, face_locations)
 
+            # Inicializamos lista de nombres
             names = []
+            # Por cada encoding en los encodings que encontramos
             for face_encoding in face_encodings:
 
                 # Comparamos el encoding encontrado en el frame con los que ya conocemos
                 matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
                 name = "Desconocido"
 
-                # Comparamos las distancias entre caras
+                # Comparamos las distancias entre caras con las que ya conocemos
                 face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
 
                 # Buscamos la mejor coincidencia
@@ -179,26 +214,38 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                 # print(f"for {face_distances} : {face_distances < 0.45}")
                 # print(f"for idx {best_match_index} : {face_distance < 0.45}")
 
-                # Si el mas cercano de los matches es igual a True alta probabilidad de que sea la persona que ya
-                # conocemos De lo contrario el nombre se mantiene como desconocido
+                # Segun la distancia queremos ver que tan lejos esta la cara con la mejor coincidencia
+                # Si la distancia es menor a 0.45
                 if face_distance < 0.45:
+                    # Si existe en el array...
                     if matches[best_match_index]:
+                        # Las listas estan ordenadas
                         id = known_face_names[best_match_index]
+                        # Con los IDs de lista podemos encontrar a el maestro
+                        # Nos regresa su nombre al terminar de guardar el evento
                         (flag, name) = data.write_rec(Global.salon, id)
+                        # Solo hablar una vez
                         if flag:
                             voice.saludar(name)
+                        # Al terminar volvemos a buscar la linea
                         set_task("roam")
+                # Agregamos la cara encontrada a la lista
                 names.append(name)
 
             # Por cada cara en el frame:
+            # juntamos ubicaciones y sus nombres
             for (top, right, bottom, left), name in zip(face_locations, names):
                 # Cambiamos las coordenadas de los puntos, pues se procesó una imagen reducida (1x > 1/4x > 1/10x)
                 # .25 * .4 = .1
                 # .1 * 2.5 = .25 
-                top = floor(top * 2.5)
-                right = floor(right * 2.5)
-                bottom = floor(bottom * 2.5)
-                left = floor(left * 2.5)
+                # Entonces 
+                # modf = 2.5
+                
+                modifier = 2.5
+                top = floor(top * modifier)
+                right = floor(right * modifier)
+                bottom = floor(bottom * modifier)
+                left = floor(left * modifier)
 
                 # Dibujamos un rectangulo donde se encuntra la cara
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
@@ -212,6 +259,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
         while Global.write_num != worker_id:
             time.sleep(0.01)
 
+        # Parametros para compresion JPEG
         encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 65, int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
                          int(cv2.IMWRITE_JPEG_OPTIMIZE), 1]
         (_, encodedImage) = cv2.imencode(".jpg", frame, encode_params)
@@ -250,7 +298,9 @@ def capture(name):
 
 
 def set_task(task):
+    # Cada tarea tiene una posicion de camara diferente
     movement.servo(task)
+    # Asignamos la tarea
     Global.task = task
 
 
@@ -290,4 +340,5 @@ def start():
         p.append(Process(target=process, args=(worker_id, read_frame_list, write_frame_list, Global, workers)))
         p[worker_id].start()
     
+    # Iniciamos proceso de movimiento y pasamos global
     movement.move(Global)

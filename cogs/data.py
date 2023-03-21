@@ -10,15 +10,20 @@ import cv2
 
 
 def get_db():
+    """Funcion para obtener coneccion a la base de datos."""
+    
     # Conectarse a el archivo (si no existe lo crea)
     conn = sqlite3.connect('data/prefectbot.sqlite')
     # Le decimos a sqlite que queremos Rows en forma de diccionarios
     # Luego como objeto iterable Query -> item['row']
     conn.row_factory = sqlite3.Row
+    
+    # regresamos la conexion
     return conn
 
 
 def read_encodings():
+    """Lee los encodings guardados como pickle."""
 
     # Lee archivo de encodings guardados
     with open('data/face_encodings.dat', 'rb') as f:
@@ -28,19 +33,26 @@ def read_encodings():
 
 
 def write_encodings(directory):
+    """Escribe los encodings a pickle usando las imagenes de el directorio que se pase. """
+    
     # Inicializar diccionario de encodings
     known_face_encodings = {}
+    # Obtenemos coneccion y creamos un cursor
     db = get_db()
     cur = db.cursor()
+    
+    # Borramos las tablas existentes
     cur.execute("DROP TABLE IF EXISTS maestros")
     cur.execute("DROP TABLE IF EXISTS eventos")
     cur.execute("DROP TABLE IF EXISTS salones")
 
+    # Abrimos las instruccions SQL guardadas
     _f = open("data/db_setup.sql", "r")
     sql = _f.read()
+    # Y las ejecutamos
     db.executescript(sql)
 
-    # Por cada imagin en el directorio
+    # Por cada imagen en el directorio
     for img in sorted(os.listdir(directory)):
         # Obtener path incluyendo directorio (dataset/img.jpg)
         file_dir = os.path.join(directory, img)
@@ -48,30 +60,36 @@ def write_encodings(directory):
         file_name = os.path.basename(file_dir)
         # Conseguir el Nombre sin extension de archivo
         f_name = os.path.splitext(file_name)[0]
-
+        
+        # Partimos la imagen en {id}_{nombre}
         id_name = f_name.split('_')
+        # {id}
         m_id = id_name[0]
+        # {nombre}
         name = id_name[1]
 
+        # Valores que agregaremos
         values = (m_id, name, file_name)
-
+        # Ejecutamos la insercion de valores
         cur.execute("INSERT INTO maestros(id, nombre, file_url) VALUES (?,?,?)", values)
         db.commit()
 
         # Cargar la imagen usando su ubicacion    
         face_img = face_recognition.load_image_file(file_dir)
-        # Cargar el encoding de la imagen
+        # Obtener el encoding de la imagen
         face_encoding = face_recognition.face_encodings(face_img)[0]
 
         # Agregar el encoding a el diccionario
         # {[name]: [encoding]}
         known_face_encodings[m_id] = face_encoding
-    # Guardar el diccionario en el archivo para ser leido despues
+    # Guardar el diccionario como un pickle
     with open('data/face_encodings.dat', 'wb') as f:
         pickle.dump(known_face_encodings, f)
 
 
 def setup_db():
+    """ Verificamos la integridad de la base de datos """
+    
     # Si no existe la base de datos crearla
     if not os.path.exists("data/prefectbot.sqlite"):
         print("Creando base de datos")
@@ -86,47 +104,65 @@ def setup_db():
         db.close()
     else:
         # Nos conectamos a la tabla si ya existe
-        print("Conectando a tabla")
         db = get_db()
-        print("Conectado!")
+        print("Base de datos verificada!")
         db.close()
-        
+
+
 def salon_check(salon):
+    """Checamos si el salon existe en la base de datos. Devuelve True o False dependiendo de si es encontrado."""
     db = get_db()
     cur = db.cursor()
-    data = cur.execute('''SELECT id, nombre, orientacion
+    data = cur.execute('''SELECT id
                             FROM salones 
                             WHERE id=?;''', salon).fetchone()  
     if data is not None:
-        return True, data['orientacion']
+        return True
     else:
         return False
     
 def check(cur):
+    """
+    Chequeo de diferencia de tiempo. Solo si el tiempo desde la ultima accion es mayor a 3 segundos o no existe regresa True.
+    
+    Esto para asegurarnos de que ciertas acciones se realizen una vez cuando sea necesario.
+    """
+    
+    # Obtenemos el ultimo tiempo UNIX
     last_time = cur.execute('''SELECT unix FROM eventos ORDER BY id DESC LIMIT 1;''').fetchone()    
     
+    # Si existe un tiempo lo comparamos con el actual
+    # Si no existe usamos 3
     if last_time is not None:
         print(f"last_time: {last_time['unix']}")
         timedelta = (int(time.time()) - last_time['unix'])
     else:
         timedelta = 3
         
+    # Devolvemos la evaluacion
     return (timedelta >= 3)
 
 def write_stop(salon):
+    """
+    Escribimos la parada de el robot usando el salon y la enviamos a cada usuario que lo requiera.
+    """
+    
     db = get_db()
     cur = db.cursor()
     
+    # Chequeo de tiempo
     flag = check(cur)
     
+    # Inicializamos cliente de SocketIO para enviar informacion a todos los usuarios
     sio = socketio.Client()
     sio.connect('http://localhost:5000')
 
     if flag:
-        # Enviar evento a el servidor para ser broadcasted a los clientes
-
+        
+        # Incluimos tiempo UNIX actual para usar en calculos de tiempo
         unix = int(time.time())
         
+        # Fecha normal... para humanos normales...
         now = datetime.now()
         tiempo = now.strftime("%Y-%m-%d %H:%M")
 
@@ -137,29 +173,31 @@ def write_stop(salon):
         cur.execute(sql, values)
         db.commit()
 
-        data = cur.execute('''SELECT id, tipo, salon, tiempo  
+        # Devolvemos los datos que acabamos de obtener usando SocketIO
+        data = cur.execute('''SELECT eventos.id, eventos.tipo, eventos.tiempo, salones.nombre  
                             FROM eventos
-                            ORDER BY id DESC LIMIT 1;''').fetchone()
+                            LEFT JOIN salones
+                            ON eventos.salon = salones.id 
+                            ORDER BY eventos.id DESC LIMIT 1;''').fetchone()
 
         sio.emit('event',
-                 {'id': data['id'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': None,
+                 {'id': data['id'], 'tipo': data['tipo'], 'salon': data['nombre'], 'maestro': None,
                   'tiempo': data['tiempo']})
 
-def get_maestro(id):
-    db = get_db()
-    cur = db.cursor()
-    maestro = cur.execute('''SELECT name 
-                        FROM nombre 
-                        ORDER BY id DESC LIMIT 1;''').fetchone()
-    return maestro
-
-def write_rec(salon, maestro=None): 
+def write_rec(salon, maestro=None):
+    """
+    Escribimos el reconocimiento de una cara por el robot usando el salon y la enviamos a cada usuario que lo requiera.
+    """
+    
+    # Inicializamos cliente de SocketIO para enviar informacion a todos los usuarios
     sio = socketio.Client()
     sio.connect('http://localhost:5000')
 
+    # Obtenemos conexion a la base de datos y creamos cursor
     db = get_db()
     cur = db.cursor()
     
+    # Checamos ultimo tiempo
     flag = check(cur)
 
     if flag:
@@ -187,14 +225,17 @@ def write_rec(salon, maestro=None):
                  {'id': data['id'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': data['nombre'],
                   'tiempo': data['tiempo']})
         
+        # Devolvemos bandera para ver si es necesario decir su nombre
         return True, data['nombre']
-
     else:
         return False, 'Desconocido'
         print(f"rejected: {timedelta}")
 
 
 def write_to_dataset(frame, name):
+    """Escribe el archivo con la id que se le asigne"""
+    
+    # Con la captura escribimos el archivo con su id
     db = get_db()
     cur = db.cursor()
 
@@ -209,8 +250,9 @@ def write_to_dataset(frame, name):
         
 
 def read_maestros():
+    """Devuelve todos los Maestros guardados para ser serializados"""
+    
     db = get_db()
-    # Une la tabla Eventos donde la id de Maestro es igual y agrega su nombre
     maestros = db.execute('SELECT * FROM maestros').fetchall()
     db.close()
 
@@ -219,17 +261,23 @@ def read_maestros():
 
 
 def read_events():
+    """Devuelve todos los Eventos guardados con los ids de maestros y salones cambiados por sus nombres legibles para ser serializados"""
+    
     db = get_db()
     # Une la tabla Eventos donde la id de Maestro es igual y agrega su nombre
     events = db.execute(
-        'SELECT eventos.id, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre FROM eventos LEFT JOIN '
-        'maestros ON eventos.maestro = maestros.id;').fetchall()
+        '''SELECT eventos.id, eventos.tipo, eventos.tiempo, maestros.nombre AS maestro_nombre, salones.nombre AS salon_nombre FROM eventos 
+           LEFT JOIN maestros ON eventos.maestro = maestros.id
+           LEFT JOIN salones ON eventos.salon = salones.id;''').fetchall()
+
     db.close()
 
     # Esto se regresa a la template de index
     return events
 
 def read_salones():
+    """Devuelve todos los Salones guardados para ser serializados"""
+    
     db = get_db()
     # Une la tabla Eventos donde la id de Maestro es igual y agrega su nombre
     salones = db.execute('SELECT * FROM Salones').fetchall()
@@ -239,7 +287,7 @@ def read_salones():
     return salones
 
 def add_salon(name):
-    print(name)
+    """Agregamos un nuevo salon a la base de datos"""
     
     db = get_db()
     cur = db.cursor()
@@ -249,10 +297,13 @@ def add_salon(name):
     
     id = cur.execute('''SELECT id FROM salones ORDER BY id DESC LIMIT 1;''').fetchone()
     
+    # Si todo salio bien devolvemos el ID
     if id is not None:
         return id['id']
 
 def del_salon(id):
+    """Borramos salon por ID"""
+
     db = get_db()
     cur = db.cursor()
         
