@@ -89,7 +89,6 @@ def _move(Global):
                 d.stop()
                 i.stop()
             if Global.f == 'f':
-                print(f'global movement: {Global.f}')
                 d.value= 1
                 i.value= 1
             if Global.f == 'l':

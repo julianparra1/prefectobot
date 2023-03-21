@@ -103,10 +103,10 @@ def handle_message(id):
 def handle_message(data):
     movement.servo(arg=data)
 
-# TODO: CONTROL DE RUEDAS
 @socketio.on('motor')  # Controlar Ruedas
 def handle_message(data):
-    processing.set_task(Global, 'none')
+    if data != 's':
+        processing.set_task(Global, 'none')
     Global.f = data
 
 # Cambiar la tarea actual de el robot
@@ -120,6 +120,26 @@ def handle_message(data):
 @socketio.on('capture')
 def handle_message(data):
     processing.capture(Global, data)
+
+@socketio.on('brightness')
+def handle_message(data):
+    if data == '+' and Global.beta < 100:
+        Global.beta += 10
+    elif data == '-' and Global.beta > -100:
+        Global.beta -= 10
+        
+@socketio.on('contrast')
+def handle_message(data):
+    if data == '+' and Global.alpha < 4:
+        Global.alpha += 0.1
+    elif data == '-' and Global.alpha > 0:
+        Global.alpha -= 0.1
+        
+
+@socketio.on('reset')
+def handle_message():
+    Global.alpha = 1
+    Global.beta = 0
 
 
 if __name__ == '__main__':

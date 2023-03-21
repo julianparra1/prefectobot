@@ -50,9 +50,11 @@ def _capture(read_frame_list, Global, worker_num):
         if Global.buff_num != next_id(Global.read_num, worker_num):
             # Escribir frame para el worker con el id que sigue
             frame = picam2.capture_array("main")
+             
+            # Brillo y contraste
+            # https://docs.opencv.org/3.4/d2/de8/group__core__array.html#ga3460e9c9f37b563ab9dd550c4d8c4e7d
+            frame = cv2.convertScaleAbs(frame, alpha=Global.alpha, beta=Global.beta)
             
-            #Brillo
-            cv2.convertScaleAbs(frame, alpha=Global.alpha, beta=Global.beta)
             resized = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
             
             read_frame_list[Global.buff_num] = resized
