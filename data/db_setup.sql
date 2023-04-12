@@ -12,7 +12,6 @@ CREATE TABLE eventos (
     tipo TEXT NOT NULL,
     salon TEXT NOT NULL,
     tiempo TEXT NOT NULL,
-    unix INTEGER NOT NULL,
     maestro INTEGER, 
     FOREIGN KEY(maestro) REFERENCES maestros(id)
     FOREIGN KEY(salon) REFERENCES salones(id)

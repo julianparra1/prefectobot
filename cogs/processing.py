@@ -34,6 +34,12 @@ def prev_id(current_id, worker_num):
         return current_id - 1
 
 
+def deltatime_check(Global):
+    last = int(Global.last_time)    
+    Global.last_time = int(time.time())
+    return ((int(time.time()) - int(last)) >= 3)
+
+
 def _capture(read_frame_list, Global, worker_num):
     picam2 = Picamera2()
     print(picam2.sensor_resolution)
@@ -51,7 +57,7 @@ def _capture(read_frame_list, Global, worker_num):
             # Escribir frame para el worker con el id que sigue
             frame = picam2.capture_array("main")
              
-            # Brillo y contraste
+            # Brillo y   contraste
             # https://docs.opencv.org/3.4/d2/de8/group__core__array.html#ga3460e9c9f37b563ab9dd550c4d8c4e7d
             frame = cv2.convertScaleAbs(frame, alpha=Global.alpha, beta=Global.beta)
             
@@ -92,8 +98,6 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
 
         # En modo roam buscamos el camino
         if Global.task == "roam":
-            #TODO: COLOR BALANCE / BRIGHTNESS 
-
             # Otsu's Binarization !!!!
             #gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         
@@ -120,13 +124,14 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                         # Verificamos que si se haya leido la informacion de el QR
                         # y lo comparamos con la base de datos existente de codigos
                         if decoded_salon != "" and data.salon_check(decoded_salon):
-                            #print(f'Decoded: {decoded_salon}')
-                            # Anunciamos la parada
-                            data.write_stop(decoded_salon)
-                            # Este es el salon en que se hara la deteccion
-                            Global.salon = decoded_salon
-                            # Cambiamos la tarea a reconocimiento 
-                            set_task(Global, "recognize")
+                            if deltatime_check(Global.last_time):
+                                #print(f'Decoded: {decoded_salon}')
+                                # Anunciamos la parada
+                                data.write_stop(decoded_salon)
+                                # Este es el salon en que se hara la deteccion
+                                Global.salon = decoded_salon
+                                # Cambiamos la tarea a reconocimiento 
+                                set_task(Global, "recognize")
                             
 
                         # Cuadro con texto decodificado del codigo qr
@@ -207,41 +212,43 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             face_encodings = face_recognition.face_encodings(resized_frame, face_locations)
 
             # Inicializamos lista de nombres
-            names = []
+            names = []            
             # Por cada encoding en los encodings que encontramos
-            for face_encoding in face_encodings:
+            if known_face_encodings.any():
+                for face_encoding in face_encodings:
 
-                # Comparamos el encoding encontrado en el frame con los que ya conocemos
-                matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-                name = "Desconocido"
+                    # Comparamos el encoding encontrado en el frame con los que ya conocemos
+                    matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
 
-                # Comparamos las distancias entre caras con las que ya conocemos
-                face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+                    # Comparamos las distancias entre caras con las que ya conocemos
+                    face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
 
-                # Buscamos la mejor coincidencia
-                best_match_index = np.argmin(face_distances)
-                face_distance = face_distances[best_match_index]
+                    # Buscamos la mejor coincidencia
+                    best_match_index = np.argmin(face_distances)
+                    face_distance = face_distances[best_match_index]
 
-                # print(f"for {face_distances} : {face_distances < 0.45}")
-                # print(f"for idx {best_match_index} : {face_distance < 0.45}")
+                    # print(f"for {face_distances} : {face_distances < 0.45}")
+                    # print(f"for idx {best_match_index} : {face_distance < 0.45}")
 
-                # Segun la distancia queremos ver que tan lejos esta la cara con la mejor coincidencia
-                # Si la distancia es menor a 0.45
-                if face_distance < 0.45:
-                    # Si existe en el array...
-                    if matches[best_match_index]:
-                        # Las listas estan ordenadas
-                        id = known_face_names[best_match_index]
-                        # Con los IDs de lista podemos encontrar a el maestro
-                        # Nos regresa su nombre al terminar de guardar el evento
-                        (flag, name) = data.write_rec(Global.salon, id)
-                        # Solo hablar una vez
-                        if flag:
-                            voice.saludar(name)
-                        # Al terminar volvemos a buscar la linea
-                        set_task(Global, "roam")
-                # Agregamos la cara encontrada a la lista
-                names.append(name)
+                    # Segun la distancia queremos ver que tan lejos esta la cara con la mejor coincidencia
+                    # Si la distancia es menor a 0.45
+                    if face_distance < 0.45:
+                        # Si existe en el array...
+                        if matches[best_match_index]:
+                            # Checar diferencia de tiempo con la ultima operacion...
+                            if deltatime_check(Global):
+                                # Las listas estan ordenadas
+                                id = known_face_names[best_match_index]
+                                # Con los IDs de lista podemos encontrar a el maestro
+                                # Nos regresa su nombre al terminar de guardar el evento
+                                name = data.write_rec(Global.salon, id)
+                                names.append(name)
+                                set_task(Global, "roam")
+                            # Solo hablar una vez
+                            # Al terminar volvemos a buscar la linea
+                    # Agregamos la cara encontrada a la lista
+            else:
+                names.append("Desconocido")
 
             # Por cada cara en el frame:
             # juntamos ubicaciones y sus nombres
@@ -314,12 +321,14 @@ def set_task(Global, task):
     # Asignamos la tarea
     Global.task = task
 
+def face_rec_login(img):
+    print(img)
 
 def start(Global):
+    Global.last_time = int(time.time())
     # Variables globales y seguras para multiprocesamiento
     Global.alpha = 1.0
     Global.beta = 0
-    
     Global.buff_num = 1
     Global.read_num = 1
     Global.write_num = 1

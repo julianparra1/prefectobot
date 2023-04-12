@@ -60,38 +60,44 @@ def write_encodings(directory):
     db.executescript(sql)
 
     # Por cada imagen en el directorio
-    for img in sorted(os.listdir(directory)):
-        # Obtener path incluyendo directorio (dataset/img.jpg)
-        file_dir = os.path.join(directory, img)
-        # Conseguir el Nombre de el archivo 
-        file_name = os.path.basename(file_dir)
-        # Conseguir el Nombre sin extension de archivo
-        f_name = os.path.splitext(file_name)[0]
-        
-        # Partimos la imagen en {id}_{nombre}
-        id_name = f_name.split('_')
-        # {id}
-        m_id = id_name[0]
-        # {nombre}
-        name = id_name[1]
+    if os.listdir(directory):
+        for img in sorted(os.listdir(directory)):
+            # Obtener path incluyendo directorio (dataset/img.jpg)
+            file_dir = os.path.join(directory, img)
+            # Conseguir el Nombre de el archivo 
+            file_name = os.path.basename(file_dir)
+            # Conseguir el Nombre sin extension de archivo
+            f_name = os.path.splitext(file_name)[0]
+            
+            # Partimos la imagen en {id}_{nombre}
+            id_name = f_name.split('_')
+            # {id}
+            m_id = id_name[0]
+            # {nombre}
+            name = id_name[1]
 
-        # Valores que agregaremos
-        values = (m_id, name, file_name)
-        # Ejecutamos la insercion de valores
-        cur.execute("INSERT INTO maestros(id, nombre, file_url) VALUES (?,?,?)", values)
-        db.commit()
+            # Valores que agregaremos
+            values = (m_id, name, file_name)
+            # Ejecutamos la insercion de valores
+            cur.execute("INSERT INTO maestros(id, nombre, file_url) VALUES (?,?,?)", values)
+            db.commit()
 
-        # Cargar la imagen usando su ubicacion    
-        face_img = face_recognition.load_image_file(file_dir)
-        # Obtener el encoding de la imagen
-        face_encoding = face_recognition.face_encodings(face_img)[0]
+            # Cargar la imagen usando su ubicacion    
+            face_img = face_recognition.load_image_file(file_dir)
+            # Obtener el encoding de la imagen
+            face_encoding = face_recognition.face_encodings(face_img)[0]
 
-        # Agregar el encoding a el diccionario
-        # {[name]: [encoding]}
-        known_face_encodings[m_id] = face_encoding
-    # Guardar el diccionario como un pickle
-    with open('data/face_encodings.dat', 'wb') as f:
-        pickle.dump(known_face_encodings, f)
+            if face_encoding.any():
+                # Agregar el encoding a el diccionario
+                # {[name]: [encoding]}
+                known_face_encodings[m_id] = face_encoding
+        # Guardar el diccionario como un pickle
+        with open('data/face_encodings.dat', 'wb') as f:
+            pickle.dump(known_face_encodings, f)
+    else:
+         with open('data/face_encodings.dat', 'wb') as f:
+            pickle.dump(known_face_encodings, f)
+    
 
 
 def setup_db():
@@ -128,26 +134,6 @@ def salon_check(salon):
     else:
         return False
     
-def check(cur):
-    """
-    Chequeo de diferencia de tiempo. Solo si el tiempo desde la ultima accion es mayor a 3 segundos o no existe regresa True.
-    
-    Esto para asegurarnos de que ciertas acciones se realizen una vez cuando sea necesario.
-    """
-    
-    # Obtenemos el ultimo tiempo UNIX
-    last_time = cur.execute('''SELECT unix FROM eventos ORDER BY id DESC LIMIT 1;''').fetchone()    
-    
-    # Si existe un tiempo lo comparamos con el actual
-    # Si no existe usamos 3
-    if last_time is not None:
-        print(f"last_time: {last_time['unix']}")
-        timedelta = (int(time.time()) - last_time['unix'])
-    else:
-        timedelta = 3
-        
-    # Devolvemos la evaluacion
-    return (timedelta >= 3)
 
 def write_stop(salon):
     """
@@ -158,38 +144,35 @@ def write_stop(salon):
     cur = db.cursor()
     
     # Chequeo de tiempo
-    flag = check(cur)
     
     # Inicializamos cliente de SocketIO para enviar informacion a todos los usuarios
     sio = socketio.Client()
     sio.connect('http://localhost:5000')
 
-    if flag:
         
-        # Incluimos tiempo UNIX actual para usar en calculos de tiempo
-        unix = int(time.time())
-        
-        # Fecha normal... para humanos normales...
-        now = datetime.now()
-        tiempo = now.strftime("%Y-%m-%d %H:%M")
+    # Incluimos tiempo UNIX actual para usar en calculos de tiempo
+    
+    # Fecha normal... para humanos normales...
+    now = datetime.now()
+    tiempo = now.strftime("%Y-%m-%d %H:%M")
 
-        sql = ''' INSERT INTO eventos(tipo, salon, tiempo, unix)
-                    VALUES(?,?,?,?) '''
-        values = ('PARADA', salon, tiempo, unix)
+    sql = ''' INSERT INTO eventos(tipo, salon, tiempo)
+                VALUES(?,?,?,?) '''
+    values = ('PARADA', salon, tiempo)
 
-        cur.execute(sql, values)
-        db.commit()
+    cur.execute(sql, values)
+    db.commit()
 
-        # Devolvemos los datos que acabamos de obtener usando SocketIO
-        data = cur.execute('''SELECT eventos.id, eventos.tipo, eventos.tiempo, salones.nombre  
-                            FROM eventos
-                            LEFT JOIN salones
-                            ON eventos.salon = salones.id 
-                            ORDER BY eventos.id DESC LIMIT 1;''').fetchone()
+    # Devolvemos los datos que acabamos de obtener usando SocketIO
+    data = cur.execute('''SELECT eventos.id, eventos.tipo, eventos.tiempo, salones.nombre  
+                        FROM eventos
+                        LEFT JOIN salones
+                        ON eventos.salon = salones.id 
+                        ORDER BY eventos.id DESC LIMIT 1;''').fetchone()
 
-        sio.emit('event',
-                 {'id': data['id'], 'tipo': data['tipo'], 'salon': data['nombre'], 'maestro': None,
-                  'tiempo': data['tiempo']})
+    sio.emit('event',
+                {'id': data['id'], 'tipo': data['tipo'], 'salon': data['nombre'], 'maestro': None,
+                'tiempo': data['tiempo']})
 
 def write_rec(salon, maestro=None):
     """
@@ -205,38 +188,32 @@ def write_rec(salon, maestro=None):
     cur = db.cursor()
     
     # Checamos ultimo tiempo
-    flag = check(cur)
 
-    if flag:
         # Enviar evento a el servidor para ser broadcasted a los clientes
 
-        unix = int(time.time())
+    now = datetime.now()
+    tiempo = now.strftime("%Y-%m-%d %H:%M")
 
-        now = datetime.now()
-        tiempo = now.strftime("%Y-%m-%d %H:%M")
+    sql = ''' INSERT INTO eventos(tipo, salon, tiempo, maestro)
+            VALUES(?,?,?,?) '''
+    values = ('RECONOCIMIENTO', salon, tiempo, maestro)
 
-        sql = ''' INSERT INTO eventos(tipo, salon, tiempo, unix, maestro)
-                VALUES(?,?,?,?,?) '''
-        values = ('RECONOCIMIENTO', salon, tiempo, unix, maestro)
+    cur.execute(sql, values)
+    db.commit()
 
-        cur.execute(sql, values)
-        db.commit()
+    data = cur.execute('''SELECT eventos.id, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre 
+                        FROM eventos 
+                        LEFT JOIN maestros 
+                        ON eventos.maestro = maestros.id 
+                        ORDER BY eventos.id DESC LIMIT 1;''').fetchall()[0]
 
-        data = cur.execute('''SELECT eventos.id, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre 
-                            FROM eventos 
-                            LEFT JOIN maestros 
-                            ON eventos.maestro = maestros.id 
-                            ORDER BY eventos.id DESC LIMIT 1;''').fetchall()[0]
+    sio.emit('event',
+                {'id': data['id'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': data['nombre'],
+                'tiempo': data['tiempo']})
+    
+    # Devolvemos bandera para ver si es necesario decir su nombre
+    return data['nombre']
 
-        sio.emit('event',
-                 {'id': data['id'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': data['nombre'],
-                  'tiempo': data['tiempo']})
-        
-        # Devolvemos bandera para ver si es necesario decir su nombre
-        return True, data['nombre']
-    else:
-        return False, 'Desconocido'
-        print(f"rejected: {timedelta}")
 
 
 def write_to_dataset(frame, name):

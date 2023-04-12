@@ -38,6 +38,9 @@ def _move(Global):
         if Global.task == "roam":
         # Por razones de no confundirme, los motores estan nombrados al revez
         # Esto porque al acelerar los motores de un lado giramos a el otro
+            if Global.f == 's':
+                d.stop()
+                i.stop()
             if Global.f == 'f':
                 time.sleep(0.2)
                 d.value= 0

@@ -19,9 +19,11 @@ Robot con la capacidad de realizar tareas de prefecto
 
 
 import sys
-from flask import Flask, render_template, Response, send_from_directory
+
+import json
+from flask import Flask, render_template, Response, send_from_directory, request
 from flask_socketio import SocketIO, emit
-from cogs import processing, movement, data, voice                                                     
+from cogs import processing, movement, data                                                     
 from multiprocessing import Manager
 import logging
 
@@ -60,6 +62,17 @@ def index():
     """Video streaming home page."""
     events = data.read_events()
     return render_template('index.html', events=events)
+
+
+@app.route('/post', methods=['POST'])
+def upload_file():
+    if request.method == 'POST':
+        if 'photo' not in request.files:
+            return json.dumps({'response': '400 Bad Request'}), 400, {'ContentType':'application/json'} 
+        file = request.files['photo']
+        processing.face_rec_login(file.read())
+    return json.dumps({'response': '200 Success'}), 200, {'ContentType':'application/json'} 
+
 
 # Pagina de configuracion
 # Pasamos salones y maestros que ya tenemos guardados para incluirlos en sus respectivas tablas
