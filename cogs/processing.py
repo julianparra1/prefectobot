@@ -217,9 +217,6 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             if known_face_encodings.any():
                 for face_encoding in face_encodings:
 
-                    # Comparamos el encoding encontrado en el frame con los que ya conocemos
-                    matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-
                     # Comparamos las distancias entre caras con las que ya conocemos
                     face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
 
@@ -233,20 +230,19 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                     # Segun la distancia queremos ver que tan lejos esta la cara con la mejor coincidencia
                     # Si la distancia es menor a 0.45
                     if face_distance < 0.45:
-                        # Si existe en el array...
-                        if matches[best_match_index]:
-                            # Checar diferencia de tiempo con la ultima operacion...
-                            if deltatime_check(Global):
-                                # Las listas estan ordenadas
-                                id = known_face_names[best_match_index]
-                                # Con los IDs de lista podemos encontrar a el maestro
-                                # Nos regresa su nombre al terminar de guardar el evento
-                                name = data.write_rec(Global.salon, id)
-                                names.append(name)
-                                set_task(Global, "roam")
+                        # Checar diferencia de tiempo con la ultima operacion...
+                        if deltatime_check(Global):
+                            # Las listas estan ordenadas
+                            id = known_face_names[best_match_index]
+                            # Con los IDs de lista podemos encontrar a el maestro
+                            # Nos regresa su nombre al terminar de guardar el evento
+                            name = data.write_rec(Global.salon, id)
+                            names.append(name)
+                            set_task(Global, "roam")
                             # Solo hablar una vez
                             # Al terminar volvemos a buscar la linea
-                    # Agregamos la cara encontrada a la lista
+                    else:
+                        names.append("Desconocido!")
             else:
                 names.append("Desconocido")
 
@@ -278,7 +274,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             time.sleep(0.01)
 
         # Parametros para compresion JPEG
-        encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 65, int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
+        encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 20, int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
                          int(cv2.IMWRITE_JPEG_OPTIMIZE), 1]
         (_, encodedImage) = cv2.imencode(".jpg", frame, encode_params)
 
