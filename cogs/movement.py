@@ -13,20 +13,10 @@ import time
 
 # Ancho de pulso 0.5ms ON / 2.5ms OFF 
 # PiGPIO para evitar jitter
-servoY = Servo("GPIO14", min_pulse_width=0.5 / 1000, max_pulse_width=2.5 / 1000, pin_factory=PiGPIOFactory())
-servoX = Servo("GPIO15", min_pulse_width=0.5 / 1000, max_pulse_width=2.5 / 1000, pin_factory=PiGPIOFactory())
 
 
 # Inizializa proceso para movimiento y pasa argumentos
 # Es mas facil controlar el movimiento de esos motores asi
-def move(Global=None):
-    # Checar si se nos a brindado un argumento
-
-    # Solo se nos pasara una variable global si viene de procesamiento
-    # En caso de que no sea asi, hacemos pasos mas grandes aumentando el tiempo
-    if Global is not None:
-        m = Process(target=_move, args=(Global,))
-        m.start()
 
 def _move(Global):
     i = Motor("GPIO16", "GPIO12")
@@ -111,34 +101,50 @@ def _move(Global):
             
     # En caso de que vengamos de un proceso, indicar que ya no nos estamos moviendo
     
+class MovementManager:
+    def __init__(self, Global):
+        self.servoY = Servo("GPIO14", min_pulse_width=0.5 / 1000, max_pulse_width=2.5 / 1000, pin_factory=PiGPIOFactory())
+        self.servoX = Servo("GPIO15", min_pulse_width=0.5 / 1000, max_pulse_width=2.5 / 1000, pin_factory=PiGPIOFactory())
+        # Checar si se nos a brindado un argumento
+        self.Global = Global
+        # Solo se nos pasara una variable global si viene de procesamiento
+        # En caso de que no sea asi, hacemos pasos mas grandes aumentando el tiempo
+        
+    def start_movement_processes(self):
+        if self.Global is not None:
+            m = Process(target=_move, args=(self.Global,))
+            m.start()
+            
+    def servo(self, arg=None, x=None, y=None):
+        # Si se pasa argumento x
+        if x is not None:
+            self.servoX.value = x
+
+        # Si se pasa argumento x
+        if y is not None:
+            self.servoX.value = y
+
+        # Posiciones en el plano incorrectas (inversas) para x
+        try:
+            if arg == "+y":
+                self.servoY.value += 0.1
+            elif arg == "-y":
+                self.servoY.value -= 0.1
+            elif arg == "+x":
+                self.servoX.value += 0.1
+            elif arg == "-x":
+                self.servoX.value -= 0.1
+            elif arg == "roam":
+                self.servoY.value = -0.7
+                self.servoX.value = 0
+            elif arg == "recognize":
+                self.servoY.value = 0.5
+                self.servoX.value = -1
+            else:
+                return
+        except (ValueError, Exception):
+            print(Exception)
 
 
-def servo(arg=None, x=None, y=None):
-    # Si se pasa argumento x
-    if x is not None:
-        servoX.value = x
 
-    # Si se pasa argumento x
-    if y is not None:
-        servoX.value = y
 
-    # Posiciones en el plano incorrectas (inversas) para x
-    try:
-        if arg == "+y":
-            servoY.value += 0.1
-        elif arg == "-y":
-            servoY.value -= 0.1
-        elif arg == "+x":
-            servoX.value += 0.1
-        elif arg == "-x":
-            servoX.value -= 0.1
-        elif arg == "roam":
-            servoY.value = -0.7
-            servoX.value = 0
-        elif arg == "recognize":
-            servoY.value = 0.5
-            servoX.value = -1
-        else:
-            return
-    except (ValueError, Exception):
-        print(Exception)

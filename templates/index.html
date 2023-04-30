@@ -224,7 +224,12 @@
     $("#reset").click(function () {
         socket.emit("reset");
     })
+    socket.on("2", ({id, tipo, salon, maestro, tiempo}) => {
+        console.log('EVENTO2')
+    });
+
     socket.on("event", ({id, tipo, salon, maestro, tiempo}) => {
+        console.log('EVENTO')
         addRow(id, tipo, salon, maestro, tiempo)
     });
 
