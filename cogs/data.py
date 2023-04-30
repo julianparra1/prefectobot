@@ -157,7 +157,7 @@ def write_stop(salon):
     tiempo = now.strftime("%Y-%m-%d %H:%M")
 
     sql = ''' INSERT INTO eventos(tipo, salon, tiempo)
-                VALUES(?,?,?,?) '''
+                VALUES(?,?,?) '''
     values = ('PARADA', salon, tiempo)
 
     cur.execute(sql, values)

@@ -35,33 +35,36 @@ def prev_id(current_id, worker_num):
 
 
 def deltatime_check(Global):
-    last = int(Global.last_time)    
-    Global.last_time = int(time.time())
+    last = Global.last_time
+    Global.last_time = time.time()
     return ((int(time.time()) - int(last)) >= 3)
 
 
 def _capture(read_frame_list, Global, worker_num):
+    #cam = cv2.VideoCapture(0)
     picam2 = Picamera2()
     print(picam2.sensor_resolution)
     # iniciamos configuracion con formato legible para face_recognizer
-    picam2.configure(picam2.create_video_configuration(main={"format": 'RGB888', "size": (2328, 1748)}, ))
-
+    picam2.configure(picam2.create_video_configuration(main={"format": 'RGB888', "size": (2328, 1748)}, lores={"format": 'YUV420', "size": (582,437)} ))
     # Configuracion de el autofocus (continuous focus)
     picam2.set_controls({"AfMode": 2, "AfTrigger": 0})
     picam2.start()
 
     
     while True:
+        #ret, frame = cam.read()
         # Esperar a ver si ya termino de leer el proceso anterior
+        #if ret:
+            
         if Global.buff_num != next_id(Global.read_num, worker_num):
             # Escribir frame para el worker con el id que sigue
-            frame = picam2.capture_array("main")
-             
-            # Brillo y   contraste
+            frame = picam2.capture_array("lores")
+            frame = cv2.cvtColor(frame, cv2.COLOR_YUV420p2RGB)
+            frame = frame[0:436, 0:582]
+            # Brillo y contraste
             # https://docs.opencv.org/3.4/d2/de8/group__core__array.html#ga3460e9c9f37b563ab9dd550c4d8c4e7d
             frame = cv2.convertScaleAbs(frame, alpha=Global.alpha, beta=Global.beta)
-            
-            resized = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+            resized = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
             
             read_frame_list[Global.buff_num] = resized
             Global.buff_num = next_id(Global.buff_num, worker_num)
@@ -108,39 +111,40 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             
             # Dentro de un try porque hay un problema con OpenCV que es super especifico
             # Pero crashear significa no mas procesamiento entonces mejor atrapamos el error
-            try:
-                # Si se detecta un QR retval devuelve True
-                retval, decoded_info, ps, straight_qrcode = qcd.detectAndDecodeMulti(frame)
+            if worker_id == 1:
+                try:
+                    # Si se detecta un QR retval devuelve True
+                    retval, decoded_info, ps, _ = qcd.detectAndDecodeMulti(frame)
 
-                # Verificamos que todo este bien con el codigo qr....
-                if retval and ps is not None:
-                    
-                    # Dibujamos polígono donde se encuentran los puntos de el QR
-                    cv2.polylines(frame, ps.astype(int), True, (0, 255, 0), 3)
-                    
-                    # Leemos la información del codigo QR y lo juntamos con sus respectivos puntos
-                    for decoded_salon, ps in zip(decoded_info, ps):
+                    # Verificamos que todo este bien con el codigo qr....
+                    if retval and ps is not None:
                         
-                        # Verificamos que si se haya leido la informacion de el QR
-                        # y lo comparamos con la base de datos existente de codigos
-                        if decoded_salon != "" and data.salon_check(decoded_salon):
-                            if deltatime_check(Global.last_time):
-                                #print(f'Decoded: {decoded_salon}')
-                                # Anunciamos la parada
-                                data.write_stop(decoded_salon)
-                                # Este es el salon en que se hara la deteccion
-                                Global.salon = decoded_salon
-                                # Cambiamos la tarea a reconocimiento 
-                                set_task(Global, "recognize")
+                        # Dibujamos polígono donde se encuentran los puntos de el QR
+                        cv2.polylines(frame, ps.astype(int), True, (0, 255, 0), 3)
+                        
+                        # Leemos la información del codigo QR y lo juntamos con sus respectivos puntos
+                        for decoded_salon, ps in zip(decoded_info, ps):
                             
+                            # Verificamos que si se haya leido la informacion de el QR
+                            # y lo comparamos con la base de datos existente de codigos
+                            if decoded_salon != "" and data.salon_check(decoded_salon):
+                                if deltatime_check(Global):
+                                    #print(f'Decoded: {decoded_salon}')
+                                    # Anunciamos la parada
+                                    data.write_stop(decoded_salon)
+                                    # Este es el salon en que se hara la deteccion
+                                    Global.salon = decoded_salon
+                                    # Cambiamos la tarea a reconocimiento 
+                                    set_task(Global, "recognize")
+                                
 
-                        # Cuadro con texto decodificado del codigo qr
-                        # Como es un poligono el rectangulo puede verse un poco distorcionado     
-                        cv2.putText(frame, decoded_salon, ps[0].astype(int), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1)
+                            # Cuadro con texto decodificado del codigo qr
+                            # Como es un poligono el rectangulo puede verse un poco distorcionado     
+                            cv2.putText(frame, decoded_salon, ps[0].astype(int), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1)
             
             # Basicamente ignoramos el error.... en este caso no es relevante            
-            except cv2.error as e:
-                print(f'QRCode fail: {e}')
+                except cv2.error as e:
+                    print(f'QRCode fail: {e}')
             
             
             # resized_frame = cv2.resize(frame, (0,0), fx=0.4, fy=0.4)
@@ -193,19 +197,19 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                     cv2.drawContours(frame, c, -1, (0, 255,), 6, )
             
             # Bounding boxes para decicion de girar        
-            cv2.rectangle(frame, (0, 0), (100, 436), (255, 0, 0), 1)
-            cv2.rectangle(frame, (100, 0), (200, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (0, 0), (100, 472), (255, 0, 0), 1)
+            cv2.rectangle(frame, (100, 0), (200, 472), (255, 0, 0), 1)
             
-            cv2.rectangle(frame, (200, 0), (381, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (200, 0), (381, 472), (255, 0, 0), 1)
             
-            cv2.rectangle(frame, (381, 0), (481, 436), (255, 0, 0), 1)
-            cv2.rectangle(frame, (481, 0), (581, 436), (255, 0, 0), 1)
+            cv2.rectangle(frame, (381, 0), (481, 472), (255, 0, 0), 1)
+            cv2.rectangle(frame, (481, 0), (582, 472), (255, 0, 0), 1)
             
 
         if Global.task == "recognize":
 
             # Achicamos el frame para procesarlo mas rapido
-            resized_frame = cv2.resize(frame, (0, 0), fx=0.4, fy=0.4)
+            resized_frame = cv2.resize(frame, (0, 0), fx=1, fy=1)
 
             # Buscamos las caras en el frame de video y sus encodings en el frame
             face_locations = face_recognition.face_locations(resized_frame)
@@ -255,7 +259,7 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
                 # Entonces 
                 # modf = 2.5
                 
-                modifier = 2.5
+                modifier = 1
                 top = floor(top * modifier)
                 right = floor(right * modifier)
                 bottom = floor(bottom * modifier)
@@ -274,8 +278,8 @@ def process(worker_id, read_frame_list, write_frame_list, Global, worker_num):
             time.sleep(0.01)
 
         # Parametros para compresion JPEG
-        encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 20, int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
-                         int(cv2.IMWRITE_JPEG_OPTIMIZE), 1]
+        encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 35, int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
+                    int(cv2.IMWRITE_JPEG_OPTIMIZE), 1]
         (_, encodedImage) = cv2.imencode(".jpg", frame, encode_params)
 
         # Escribir frame en Global
@@ -295,13 +299,14 @@ def get_frames(Global):
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + bytearray(
                 write_frame_list[prev_id(Global.write_num, workers)]) + b'\r\n')
+            
+
 
 
 def capture(Global, name):
     # Leer el frame actual
     if Global.read_num != prev_id(Global.buff_num, workers):
         frame = read_frame_list[Global.read_num]
-        # Convertir a Escala de grises
         # Buscar caras
         face_locations = face_recognition.face_locations(frame)
         for (top, right, bottom, left) in face_locations:
@@ -321,8 +326,8 @@ def face_rec_login(img):
     print(img)
 
 def start(Global):
-    Global.last_time = int(time.time())
     # Variables globales y seguras para multiprocesamiento
+    Global.last_time = int(time.time())
     Global.alpha = 1.0
     Global.beta = 0
     Global.buff_num = 1
@@ -351,12 +356,15 @@ def start(Global):
 
     # Iniciamos proceso de captura de frames de la camara
     p.append(Process(target=_capture, args=(read_frame_list, Global, workers,)))
+    # Necesitan morir!
+    p[0].daemon = True
     p[0].start()
     
 
     # Abrimos un proceso nuevo segun los workers que asignamos
     for worker_id in range(1, workers + 1):
         p.append(Process(target=process, args=(worker_id, read_frame_list, write_frame_list, Global, workers)))
+        p[worker_id].daemon = True
         p[worker_id].start()
     
     # Iniciamos proceso de movimiento y pasamos global
