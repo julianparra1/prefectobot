@@ -2,9 +2,15 @@
 {% extends "layout.html" %}
 {% block title %}Main{% endblock %}
 {% block content %}
+
 <div class="">
     <img src="{{ url_for('video_feed') }}" height="427px" width="582px">
 </div>
+
+<div class="mt-1">
+    <img src="{{ url_for('m_video_feed') }}" height="427px" width="582px">
+</div>
+
 <div class="md:flex gap-x-6">
     <div class="mt-1 flex flex-col items-center" style="font-size: 0px;">
         <div class="">

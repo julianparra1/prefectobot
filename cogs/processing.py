@@ -6,9 +6,11 @@ Modulo de procesamiento de imagenes
 """
 
 from math import floor
+from queue import Empty
 import time
 from picamera2 import Picamera2
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager, Queue
+from imutils.object_detection import non_max_suppression
 import face_recognition
 import numpy as np
 import cv2
@@ -37,7 +39,6 @@ def deltatime_check(Global):
         return ((int(time.time()) - int(last)) >= 3)
     
 def _capture(read_frame_list, Global, worker_num):
-        #cam = cv2.VideoCapture(0)
         picam2 = Picamera2()
         print(picam2.sensor_resolution)
         # iniciamos configuracion con formato legible para face_recognizer
@@ -48,9 +49,7 @@ def _capture(read_frame_list, Global, worker_num):
 
         
         while True:
-            #ret, frame = cam.read()
             # Esperar a ver si ya termino de leer el proceso anterior
-            #if ret:
                 
             if Global.buff_num != next_id(Global.read_num, worker_num):
                 # Escribir frame para el worker con el id que sigue
@@ -63,12 +62,34 @@ def _capture(read_frame_list, Global, worker_num):
                 resized = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
                 
                 read_frame_list[Global.buff_num] = resized
+                
                 Global.buff_num = next_id(Global.buff_num, worker_num)
             else:
                 time.sleep(0.01)
  
-                  
-def _process(worker_id, read_frame_list, write_frame_list, Global, worker_num, db_manager):
+def _motion_detection(Global, q, worker_num, db_manager):
+    cam = cv2.VideoCapture(0)
+    hog = cv2.HOGDescriptor()
+    hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+    while True:
+        ret, motion_cam_frame = cam.read()
+        if ret:
+            
+            resized = cv2.resize(motion_cam_frame, (0, 0), fx=0.5, fy=0.5)
+            
+            (rects, weights) = hog.detectMultiScale(resized, winStride=(4, 4),
+            padding=(8, 8), scale=1.05)
+            
+            for (x, y, w, h) in rects:
+                cv2.rectangle(resized, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+            encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 35, int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
+                        int(cv2.IMWRITE_JPEG_OPTIMIZE), 1]
+            (_, encodedImage) = cv2.imencode(".jpg", resized, encode_params)
+            
+            q.put(encodedImage)
+            
+def _process(worker_id, read_frame_list, write_frame_list, Global, worker_num, db_manager, movement_manager):
         # Proceso ya empezo
         print(f"process {worker_id} started!")
         
@@ -128,6 +149,7 @@ def _process(worker_id, read_frame_list, write_frame_list, Global, worker_num, d
                                         #print(f'Decoded: {decoded_salon}')
                                         # Anunciamos la parada
                                         db_manager.write_stop(decoded_salon)
+                                        movement_manager.servo('recognize')
                                         # Este es el salon en que se hara la deteccion
                                         Global.salon = decoded_salon
                                         # Cambiamos la tarea a reconocimiento 
@@ -238,6 +260,7 @@ def _process(worker_id, read_frame_list, write_frame_list, Global, worker_num, d
                                 # Nos regresa su nombre al terminar de guardar el evento
                                 name = db_manager.write_rec(Global.salon, id)
                                 names.append(name)
+                                movement_manager.servo('roam')
                                 Global.task = "roam"
                                 # Solo hablar una vez
                                 # Al terminar volvemos a buscar la linea
@@ -295,6 +318,7 @@ class Cam:
         self.Global = Global
         self.movement_manager = movement_manager
         self.db_manager = db_manager
+        self.q = Queue()
         
     def start_processes(self):
         # Variables globales y seguras para multiprocesamiento
@@ -322,17 +346,32 @@ class Cam:
         # Necesitan morir!
         p[0].daemon = True
         p[0].start()
-        
 
         # Abrimos un proceso nuevo segun los workers que asignamos
         for worker_id in range(1, workers + 1):
-            p.append(Process(target=_process, args=(worker_id, read_frame_list, write_frame_list, self.Global, workers, self.db_manager)))
+            p.append(Process(target=_process, args=(worker_id, read_frame_list, write_frame_list, self.Global, 
+                                                    workers, self.db_manager, self.movement_manager)))
             p[worker_id].daemon = True
             p[worker_id].start()
         
+        p.append(Process(target=_motion_detection, args=(self.Global, self.q, workers, self.db_manager)))
+        # Necesitan morir!
+        p[workers + 1].daemon = True
+        p[workers + 1].start()
+        
+        
         # Iniciamos proceso de movimiento y pasamos global
-                
-
+             
+    def get_motion_frames(self):
+        while True:
+            while not self.q.empty():
+                try:
+                    self.q.get_nowait()
+                except Empty:
+                    pass
+            yield (b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + bytearray(self.q.get()) + b'\r\n')
+            
     def get_frames(self):
         last_num = 1
         while True:
@@ -365,7 +404,25 @@ class Cam:
         # Asignamos la tarea
         self.Global.task = task
 
-    def face_rec_login(img):
-        print(img)
+    def face_rec_login(self, img):
+        img = np.array(img) 
+        img = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
+
+        f_locations = face_recognition.face_locations(img)
+        f_encodings = face_recognition.face_encodings(img, f_locations)
+        
+        cv2.resize
+        for face_encoding in f_encodings:
+            face_distances = face_recognition.face_distance(self.Global.known_face_encodings, face_encoding)
+            best_match_index = np.argmin(face_distances)
+            face_distance = face_distances[best_match_index]
+            print(face_distance)
+            if face_distance < 0.50:
+                id = self.Global.known_face_names[best_match_index]
+                name = self.db_manager.get_name(id)
+                print(name)
+                return (True, name)
+            else:
+                return (False, None)
 
     

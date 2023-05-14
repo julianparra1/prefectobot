@@ -21,6 +21,7 @@ Robot con la capacidad de realizar tareas de prefecto
 import sys
 
 import json
+from PIL import Image
 from flask import Flask, render_template, Response, send_from_directory, request
 from flask_socketio import SocketIO, emit
 from cogs import processing, movement, data                                                     
@@ -34,9 +35,9 @@ except IndexError:
     arg = ""
 
 app = Flask(__name__)
-socketio = SocketIO(app, logger=True, engineio_logger=True)
+socketio = SocketIO(app, logger=False, engineio_logger=True)
 
-db_manager = data.DatabaseManager()
+db_manager = data.DataManager()
 Global = Manager().Namespace()
 
 movement_manager = movement.MovementManager(Global)
@@ -54,6 +55,10 @@ if arg == '-w':
 @app.route('/video_feed')
 def video_feed():
     return Response(cam.get_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/m_video_feed')
+def m_video_feed():
+    return Response(cam.get_motion_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # Damos acceso a el directorio donde se encuentran las fotos para reconocimiento
 @app.route('/dataset/<path:path>')
@@ -74,11 +79,15 @@ def index():
 def upload_file():
     if request.method == 'POST':
         if 'photo' not in request.files:
-            return json.dumps({'response': '400 Bad Request'}), 400, {'ContentType':'application/json'} 
+            return json.dumps({'response': '400 Bad Request'}), 400
         file = request.files['photo']
-        processing.face_rec_login(file.read())
-    return json.dumps({'response': '200 Success'}), 200, {'ContentType':'application/json'} 
-
+        img = Image.open(file.stream)
+        print(img)
+        (flag, name) = cam.face_rec_login(img)
+        if flag:
+            return json.dumps({'response': '200 Success', 'user': name}), 200
+        else:
+            return json.dumps({'response': 'epic fail'}), 200
 
 # Pagina de configuracion
 # Pasamos salones y maestros que ya tenemos guardados para incluirlos en sus respectivas tablas
@@ -132,6 +141,7 @@ def handle_message(data):
 # -> 'roam', 'rec', 'none'
 @socketio.on('set_task')  # Seleccionar tarea
 def handle_message(data):
+    movement_manager.servo(data)
     Global.task = data
 
 # Al presionar boton de captura

@@ -48,7 +48,7 @@ class Client:
         pass
         
 
-class DatabaseManager:
+class DataManager:
     def read_encodings(self):
         """Lee los encodings guardados como pickle."""
 
@@ -185,9 +185,9 @@ class DatabaseManager:
         sql = ''' INSERT INTO eventos(tipo, salon, tiempo, maestro)
                 VALUES(?,?,?,?) '''
         values = ('RECONOCIMIENTO', salon, tiempo, maestro)
-        with Database as db:
+        with Database() as db:
             db.cur.execute(sql, values)
-            db.commit()
+            db.conn.commit()
 
             data = db.cur.execute('''SELECT eventos.id, eventos.tipo, eventos.salon, eventos.tiempo, maestros.nombre 
                                 FROM eventos 
@@ -197,13 +197,20 @@ class DatabaseManager:
             with Client() as sio:
                 sio.emit('event',
                         {'id': data['id'], 'tipo': data['tipo'], 'salon': data['salon'], 'maestro': data['nombre'],
-                        'tiempo': data['tiempo']}, broadcast=True)
+                        'tiempo': data['tiempo']})
         
             # Devolvemos bandera para ver si es necesario decir su nombre
             return data['nombre']
 
 
-
+    def get_name(self, id):
+        with Database() as db:
+            data = db.cur.execute('''SELECT nombre 
+                                  FROM maestros
+                                WHERE id = ?
+                                ''', (id,)).fetchall()[0]
+        return data['nombre']
+    
     def write_to_dataset(self, frame, name):
         """Escribe el archivo con la id que se le asigne"""
         with Database() as db:
