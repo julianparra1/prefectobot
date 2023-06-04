@@ -35,7 +35,7 @@ except IndexError:
     arg = ""
 
 app = Flask(__name__)
-socketio = SocketIO(app, logger=False, engineio_logger=True)
+socketio = SocketIO(app, logger=False)
 
 db_manager = data.DataManager()
 Global = Manager().Namespace()
@@ -88,6 +88,21 @@ def upload_file():
             return json.dumps({'response': '200 Success', 'user': name}), 200
         else:
             return json.dumps({'response': 'epic fail'}), 200
+
+@app.route('/new', methods=['POST'])
+def new_user():
+    if request.method == 'POST':
+        if 'photo' not in request.files:
+            return json.dumps({'response': '400 Bad Request'}), 400
+        file = request.files['photo']
+        usr = request.form['user']
+        img = Image.open(file.stream)
+        (flag, name) = cam.new_capture_app(img, usr)
+        if flag:
+            return json.dumps({'response': '200 Success', 'user': name}), 200
+        else:
+            return json.dumps({'response': 'epic fail'}), 200
+
 
 # Pagina de configuracion
 # Pasamos salones y maestros que ya tenemos guardados para incluirlos en sus respectivas tablas

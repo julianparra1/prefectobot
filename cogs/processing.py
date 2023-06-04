@@ -10,10 +10,11 @@ from queue import Empty
 import time
 from picamera2 import Picamera2
 from multiprocessing import Process, Manager, Queue
-from imutils.object_detection import non_max_suppression
+import imutils 
 import face_recognition
 import numpy as np
 import cv2
+import dlib
 
 workers = 4  # 3 workers + camara
 
@@ -66,26 +67,24 @@ def _capture(read_frame_list, Global, worker_num):
                 Global.buff_num = next_id(Global.buff_num, worker_num)
             else:
                 time.sleep(0.01)
- 
+
+
 def _motion_detection(Global, q, worker_num, db_manager):
     cam = cv2.VideoCapture(0)
-    hog = cv2.HOGDescriptor()
-    hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+    detector = dlib.simple_object_detector("./data/detector.svm")
     while True:
         ret, motion_cam_frame = cam.read()
         if ret:
-            
-            resized = cv2.resize(motion_cam_frame, (0, 0), fx=0.5, fy=0.5)
-            
-            (rects, weights) = hog.detectMultiScale(resized, winStride=(4, 4),
-            padding=(8, 8), scale=1.05)
-            
-            for (x, y, w, h) in rects:
-                cv2.rectangle(resized, (x, y), (x + w, y + h), (0, 0, 255), 2)
-
+            motion_cam_frame = cv2.resize(motion_cam_frame, (0,0), fx=0.5, fy=0.5)
+            img = cv2.cvtColor(motion_cam_frame, cv2.COLOR_BGR2RGB)
+            boxes = detector(img)
+            for b in boxes:
+                (x, y, w, h) = (b.left(), b.top(), b.right(), b.bottom())
+                cv2.rectangle(motion_cam_frame, (x, y), (w, h), (127, 0, 255), 2)
+                
             encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 35, int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
                         int(cv2.IMWRITE_JPEG_OPTIMIZE), 1]
-            (_, encodedImage) = cv2.imencode(".jpg", resized, encode_params)
+            (_, encodedImage) = cv2.imencode(".jpg", motion_cam_frame, encode_params)
             
             q.put(encodedImage)
             
@@ -313,6 +312,7 @@ class Cam:
         # Lee el diccionario que guardamos
         # Y lo separa por keys (names) y values (encodings)
         (encodings, names) = db_manager.read_encodings()
+        print(f'\033[93mLoaded: {len(encodings)} Encoding(s) | ID(s): {names} \033[00m')
         self.encodings = encodings
         self.names = names
         self.Global = Global
@@ -364,11 +364,7 @@ class Cam:
              
     def get_motion_frames(self):
         while True:
-            while not self.q.empty():
-                try:
-                    self.q.get_nowait()
-                except Empty:
-                    pass
+
             yield (b'--frame\r\n'
                 b'Content-Type: image/jpeg\r\n\r\n' + bytearray(self.q.get()) + b'\r\n')
             
@@ -411,7 +407,6 @@ class Cam:
         f_locations = face_recognition.face_locations(img)
         f_encodings = face_recognition.face_encodings(img, f_locations)
         
-        cv2.resize
         for face_encoding in f_encodings:
             face_distances = face_recognition.face_distance(self.Global.known_face_encodings, face_encoding)
             best_match_index = np.argmin(face_distances)
@@ -420,9 +415,22 @@ class Cam:
             if face_distance < 0.50:
                 id = self.Global.known_face_names[best_match_index]
                 name = self.db_manager.get_name(id)
-                print(name)
+                print(f'Login - ID: {id} | NAME: {name}')
                 return (True, name)
             else:
                 return (False, None)
-
     
+
+    def new_capture_app(self, img,  name):
+        img = np.array(img) 
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
+        f_locations = face_recognition.face_locations(img)
+        if len(f_locations) > 0:
+            for (top, right, bottom, left) in f_locations:
+                # [top:bottom, left:right]
+                self.db_manager.write_to_dataset(img, name)
+                return True, name
+        else:
+            return False, 'FAIL'
+
